@@ -1,3 +1,1 @@
-# Safe-Signal
-
-Safe Signal - Emergency Alert and Disaster Resource App
+# Safe Signal - Emergency Alert and Disaster Resource App
