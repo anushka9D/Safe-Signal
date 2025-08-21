@@ -63,3 +63,63 @@ application/app.json	Expo app configuration with platform-specific settings
 application/.vscode/settings.json	VS Code editor settings for code formatting
 application/.gitignore	Git ignore patterns for Expo and React Native projects
 README.md	Updated documentation with setup and installation instructions
+
+
+## Install Nativewind
+npm install nativewind react-native-reanimated@~3.17.4 react-native-safe-area-context@5.4.0
+
+npm install --dev tailwindcss@^3.4.17 prettier-plugin-tailwindcss@^0.5.11
+
+
+## Setup Tailwind CSS
+npx tailwindcss init
+
+### tailwind.config.js 
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  // NOTE: Update this to include the paths to all files that contain Nativewind classes.
+  content: ["./App.tsx", "./components/**/*.{js,jsx,ts,tsx}"],
+  presets: [require("nativewind/preset")],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+
+
+## Create a CSS file and add the Tailwind directives.
+
+### global.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+## Add the Babel preset
+
+### babel.config.js
+module.exports = function (api) {
+  api.cache(true);
+  return {
+    presets: [
+      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
+      "nativewind/babel",
+    ],
+  };
+};
+
+
+##  Create or modify your metro.config.js
+
+npx expo customize metro.config.js
+
+const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require('nativewind/metro');
+ 
+const config = getDefaultConfig(__dirname)
+ 
+module.exports = withNativeWind(config, { input: './global.css' })
+
+
+## Import your CSS file in App.js
+
