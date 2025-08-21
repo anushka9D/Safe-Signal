@@ -1,13 +1,18 @@
 {
     "expo": {
-        "name": "application",
-        "slug": "application",
+        "name": "Safe Signal",
+        "slug": "safe-signal",
         "version": "1.0.0",
         "orientation": "portrait",
         "icon": "./assets/images/icon.png",
         "scheme": "application",
-        "userInterfaceStyle": "automatic",
+        "userInterfaceStyle": "light",
         "newArchEnabled": true,
+        "splash": {
+            "image": "./assets/images/splash-icon.png",
+            "resizeMode": "contain",
+            "backgroundColor": "#ffffff"
+        },
         "ios": {
             "supportsTablet": true
         },

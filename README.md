@@ -50,3 +50,16 @@ The ".expo" folder is created when an Expo project is started using "expo start"
 > Should I commit the ".expo" folder?
 No, you should not share the ".expo" folder. It does not contain any information that is relevant for other developers working on the project, it is specific to your machine.
 Upon project creation, the ".expo" folder is already added to your ".gitignore" file.
+
+
+
+## File	Description
+application/tsconfig.json	TypeScript configuration extending Expo's base config with strict mode and path mapping
+application/package.json	Project dependencies and scripts for Expo React Native app
+application/eslint.config.js	ESLint configuration using Expo's flat config format
+application/app/index.tsx	Basic home screen component with centered text
+application/app/_layout.tsx	Root layout component using Expo Router's Stack navigation
+application/app.json	Expo app configuration with platform-specific settings
+application/.vscode/settings.json	VS Code editor settings for code formatting
+application/.gitignore	Git ignore patterns for Expo and React Native projects
+README.md	Updated documentation with setup and installation instructions
