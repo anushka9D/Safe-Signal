@@ -66,15 +66,20 @@ README.md	Updated documentation with setup and installation instructions
 
 
 ## Install Nativewind
+
+```bash
 npm install nativewind react-native-reanimated@~3.17.4 react-native-safe-area-context@5.4.0
 
 npm install --dev tailwindcss@^3.4.17 prettier-plugin-tailwindcss@^0.5.11
-
+```
 
 ## Setup Tailwind CSS
+```bash
 npx tailwindcss init
+```
 
 ### tailwind.config.js 
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   // NOTE: Update this to include the paths to all files that contain Nativewind classes.
@@ -110,8 +115,9 @@ module.exports = function (api) {
 
 
 ##  Create or modify your metro.config.js
-
+```bash
 npx expo customize metro.config.js
+```
 
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require('nativewind/metro');
@@ -121,5 +127,14 @@ const config = getDefaultConfig(__dirname)
 module.exports = withNativeWind(config, { input: './global.css' })
 
 
-## Import your CSS file in App.js
+## Import your CSS file in _layout.tsx in app folder
+
+import "./global.css"
+
+import { Stack } from "expo-router";
+
+export default function RootLayout() {
+    return <Stack />;
+}
+
 
