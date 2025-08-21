@@ -32,7 +32,7 @@ export default function LocationSelectSinhala() {
             <View className="flex-1 items-center justify-center">
                 <TouchableOpacity
                     className="bg-gray-800 rounded-xl py-5 px-6 w-1/2"
-                    onPress={() => router.push('/location-select-sinhala')}
+                    onPress={() => router.push('/dashboards/dashboard-sinhala')}
                 >
                     <Text className="text-white text-xl font-semibold text-center">
                         ප්‍රධාන පිටුවට

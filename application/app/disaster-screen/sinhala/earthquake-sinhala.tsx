@@ -2,7 +2,7 @@ import { Text, View, TouchableOpacity, SafeAreaView, StatusBar } from "react-nat
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 
-export default function DashboardSinhala() {
+export default function EarthquakeSinhala() {
     const router = useRouter();
 
     return (
@@ -19,7 +19,7 @@ export default function DashboardSinhala() {
                         <Ionicons name="arrow-back" size={24} color="#4B5563" />
                     </TouchableOpacity>
                     <Text className="text-2xl font-bold text-gray-800">
-                        ප්‍රධාන මෙනුව
+                        භුමි කම්පා
                     </Text>
                     <View className="w-10" />
                 </View>
@@ -31,56 +31,47 @@ export default function DashboardSinhala() {
                 <View className="flex-1 flex-row flex-wrap justify-between p-4">
 
                     <TouchableOpacity
-                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-                        onPress={() => router.push('/disaster-screen/sinhala/flood-sinhala')}
+                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
+                        onPress={() => router.push('/locations/location-sinhala')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            ගංවතුර
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-                        onPress={() => router.push('/disaster-screen/sinhala/land-slides-sinhala')}
-                    >
-                        <Text className="text-white text-lg font-semibold text-center">
-                            නාය යෑම්
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-                        onPress={() => router.push('/disaster-screen/sinhala/earthquake-sinhala')}
-                    >
-                        <Text className="text-white text-lg font-semibold text-center">
-                            භුමිකම්පා
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-                        onPress={() => router.push('/disaster-screen/sinhala/storm-sinhala')}
-                    >
-                        <Text className="text-white text-lg font-semibold text-center">
-                            සුළි සුලං
+                            ආරක්ෂිත ස්ථාන
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/settings/settings-sinhala')}
+                        onPress={() => router.push('/articles/sinhala/earthquake-article-1-sinhala')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            Settings
+                            විස්තර පත්‍රිකා 01
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/notifications/notifications-sinhala')}
+                        onPress={() => router.push('/articles/sinhala/earthquake-article-2-sinhala')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            දැනුම් දීම්
+                            විස්තර පත්‍රිකා 02
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
+                        onPress={() => router.push('/articles/sinhala/earthquake-article-3-sinhala')}
+                    >
+                        <Text className="text-white text-lg font-semibold text-center">
+                            විස්තර පත්‍රිකා 03
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
+                        onPress={() => router.push('/contacts/sinhala/earthquake-contacts-sinhala')}
+                    >
+                        <Text className="text-white text-lg font-semibold text-center">
+                            සම්බන්ධතා අංක
                         </Text>
                     </TouchableOpacity>
 

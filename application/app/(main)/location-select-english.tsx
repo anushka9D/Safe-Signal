@@ -32,7 +32,7 @@ export default function LocationSelectEnglish() {
             <View className="flex-1 items-center justify-center">
                 <TouchableOpacity
                     className="bg-gray-800 rounded-xl py-5 px-6 w-1/2"
-                    onPress={() => router.push('/dashboard/dashboard-english')}
+                    onPress={() => router.push('/dashboards/dashboard-english')}
                 >
                     <Text className="text-white text-xl font-semibold text-center">
                         Goto Dashboard
