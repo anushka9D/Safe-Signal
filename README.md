@@ -50,3 +50,76 @@ The ".expo" folder is created when an Expo project is started using "expo start"
 > Should I commit the ".expo" folder?
 No, you should not share the ".expo" folder. It does not contain any information that is relevant for other developers working on the project, it is specific to your machine.
 Upon project creation, the ".expo" folder is already added to your ".gitignore" file.
+
+
+
+## File	Description
+application/tsconfig.json	TypeScript configuration extending Expo's base config with strict mode and path mapping
+application/package.json	Project dependencies and scripts for Expo React Native app
+application/eslint.config.js	ESLint configuration using Expo's flat config format
+application/app/index.tsx	Basic home screen component with centered text
+application/app/_layout.tsx	Root layout component using Expo Router's Stack navigation
+application/app.json	Expo app configuration with platform-specific settings
+application/.vscode/settings.json	VS Code editor settings for code formatting
+application/.gitignore	Git ignore patterns for Expo and React Native projects
+README.md	Updated documentation with setup and installation instructions
+
+
+## Install Nativewind
+npm install nativewind react-native-reanimated@~3.17.4 react-native-safe-area-context@5.4.0
+
+npm install --dev tailwindcss@^3.4.17 prettier-plugin-tailwindcss@^0.5.11
+
+
+## Setup Tailwind CSS
+npx tailwindcss init
+
+### tailwind.config.js 
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  // NOTE: Update this to include the paths to all files that contain Nativewind classes.
+  content: ["./App.tsx", "./components/**/*.{js,jsx,ts,tsx}"],
+  presets: [require("nativewind/preset")],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+
+
+## Create a CSS file and add the Tailwind directives.
+
+### global.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+## Add the Babel preset
+
+### babel.config.js
+module.exports = function (api) {
+  api.cache(true);
+  return {
+    presets: [
+      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
+      "nativewind/babel",
+    ],
+  };
+};
+
+
+##  Create or modify your metro.config.js
+
+npx expo customize metro.config.js
+
+const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require('nativewind/metro');
+ 
+const config = getDefaultConfig(__dirname)
+ 
+module.exports = withNativeWind(config, { input: './global.css' })
+
+
+## Import your CSS file in App.js
+
