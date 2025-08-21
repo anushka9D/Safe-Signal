@@ -1,8 +1,8 @@
-import { Text, View, TouchableOpacity, ScrollView, SafeAreaView, StatusBar } from "react-native";
+import { Text, View, TouchableOpacity, SafeAreaView, StatusBar } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 
-export default function LocationSelectEnglish() {
+export default function DashboardEnglish() {
     const router = useRouter();
 
     return (
@@ -68,7 +68,7 @@ export default function LocationSelectEnglish() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-                        onPress={() => router.push('/l')}
+                        onPress={() => router.push('/')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Settings

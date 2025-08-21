@@ -2,7 +2,7 @@ import { Text, View, TouchableOpacity, SafeAreaView, StatusBar } from "react-nat
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 
-export default function DashboardSinhala() {
+export default function EarthquakeEnglish() {
     const router = useRouter();
 
     return (
@@ -19,7 +19,7 @@ export default function DashboardSinhala() {
                         <Ionicons name="arrow-back" size={24} color="#4B5563" />
                     </TouchableOpacity>
                     <Text className="text-2xl font-bold text-gray-800">
-                        ප්‍රධාන මෙනුව
+                        Dashboard
                     </Text>
                     <View className="w-10" />
                 </View>
@@ -31,56 +31,47 @@ export default function DashboardSinhala() {
                 <View className="flex-1 flex-row flex-wrap justify-between p-4">
 
                     <TouchableOpacity
-                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
+                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
                         onPress={() => router.push('/')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            ගංවතුර
+                            Safe Locations
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
+                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
                         onPress={() => router.push('/')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            නාය යෑම්
+                            Article 01
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
+                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
                         onPress={() => router.push('/')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            භුමිකම්පා
+                            Article 02
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
+                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
                         onPress={() => router.push('/')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            සුළි සුලං
+                            Article 03
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
+                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
                         onPress={() => router.push('/')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            Settings
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-                        onPress={() => router.push('/')}
-                    >
-                        <Text className="text-white text-lg font-semibold text-center">
-                            දැනුම් දීම්
+                            Contact Numbers
                         </Text>
                     </TouchableOpacity>
 
