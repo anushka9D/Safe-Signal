@@ -2,7 +2,7 @@ import { Text, View, TouchableOpacity, SafeAreaView, StatusBar } from "react-nat
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 
-export default function LandSlidesEnglish() {
+export default function Dashboard() {
     const router = useRouter();
 
     return (
@@ -19,7 +19,7 @@ export default function LandSlidesEnglish() {
                         <Ionicons name="arrow-back" size={24} color="#4B5563" />
                     </TouchableOpacity>
                     <Text className="text-2xl font-bold text-gray-800">
-                        Land Slide Dashboard
+                        Dashboard
                     </Text>
                     <View className="w-10" />
                 </View>
@@ -31,47 +31,56 @@ export default function LandSlidesEnglish() {
                 <View className="flex-1 flex-row flex-wrap justify-between p-4">
 
                     <TouchableOpacity
-                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
-                        onPress={() => router.push('/locations/location-english')}
+                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
+                        onPress={() => router.push('/disaster-screen/english/flood-english')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            Safe Locations
+                            Flood
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
+                        onPress={() => router.push('/disaster-screen/english/land-slides-english')}
+                    >
+                        <Text className="text-white text-lg font-semibold text-center">
+                            Land Slides
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
+                        onPress={() => router.push('/disaster-screen/english/earthquake-english')}
+                    >
+                        <Text className="text-white text-lg font-semibold text-center">
+                            Earthquake
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
+                        onPress={() => router.push('/disaster-screen/english/storm-english')}
+                    >
+                        <Text className="text-white text-lg font-semibold text-center">
+                            Storms
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/articles/english/land-slides-article-1-english')}
+                        onPress={() => router.push('/settings/settings-english')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            Article 01
+                            Settings
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/articles/english/land-slides-article-2-english')}
+                        onPress={() => router.push('/notifications/notifications-english')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            Article 02
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/articles/english/land-slides-article-3-english')}
-                    >
-                        <Text className="text-white text-lg font-semibold text-center">
-                            Article 03
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
-                        onPress={() => router.push('/contacts/english/land-slides-contacts-english')}
-                    >
-                        <Text className="text-white text-lg font-semibold text-center">
-                            Contact Numbers
+                            Notifications
                         </Text>
                     </TouchableOpacity>
 

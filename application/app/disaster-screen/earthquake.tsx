@@ -2,7 +2,7 @@ import { Text, View, TouchableOpacity, SafeAreaView, StatusBar } from "react-nat
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 
-export default function EarthquakeSinhala() {
+export default function Earthquake() {
     const router = useRouter();
 
     return (
@@ -19,7 +19,7 @@ export default function EarthquakeSinhala() {
                         <Ionicons name="arrow-back" size={24} color="#4B5563" />
                     </TouchableOpacity>
                     <Text className="text-2xl font-bold text-gray-800">
-                        භුමි කම්පා
+                        Earthquake Dashboard
                     </Text>
                     <View className="w-10" />
                 </View>
@@ -32,46 +32,46 @@ export default function EarthquakeSinhala() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
-                        onPress={() => router.push('/locations/location-sinhala')}
+                        onPress={() => router.push('/locations/location-english')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            ආරක්ෂිත ස්ථාන
+                            Safe Locations
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/articles/sinhala/earthquake-article-1-sinhala')}
+                        onPress={() => router.push('/articles/english/earthquake-article-1-english')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            විස්තර පත්‍රිකා 01
+                            Article 01
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/articles/sinhala/earthquake-article-2-sinhala')}
+                        onPress={() => router.push('/articles/english/earthquake-article-2-english')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            විස්තර පත්‍රිකා 02
+                            Article 02
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/articles/sinhala/earthquake-article-3-sinhala')}
+                        onPress={() => router.push('/articles/english/earthquake-article-3-english')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            විස්තර පත්‍රිකා 03
+                            Article 03
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
-                        onPress={() => router.push('/contacts/sinhala/earthquake-contacts-sinhala')}
+                        onPress={() => router.push('/contacts/english/earthquake-contacts-english')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
-                            සම්බන්ධතා අංක
+                            Contact Numbers
                         </Text>
                     </TouchableOpacity>
 
