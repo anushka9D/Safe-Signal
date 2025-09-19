@@ -32,7 +32,7 @@ export default function Earthquake() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
-                        onPress={() => router.push('/locations/location-english')}
+                        onPress={() => router.push('/locations/location')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Safe Locations
@@ -41,7 +41,7 @@ export default function Earthquake() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/articles/english/earthquake-article-1-english')}
+                        onPress={() => router.push('/articles/article')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Article 01
@@ -50,7 +50,7 @@ export default function Earthquake() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/articles/english/earthquake-article-2-english')}
+                        onPress={() => router.push('/articles/article')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Article 02
@@ -59,7 +59,7 @@ export default function Earthquake() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/articles/english/earthquake-article-3-english')}
+                        onPress={() => router.push('/articles/article')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Article 03
@@ -68,7 +68,7 @@ export default function Earthquake() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
-                        onPress={() => router.push('/contacts/english/earthquake-contacts-english')}
+                        onPress={() => router.push('/contacts/contacts')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Contact Numbers
