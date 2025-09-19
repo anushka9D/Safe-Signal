@@ -32,7 +32,7 @@ export default function Dashboard() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-                        onPress={() => router.push('/disaster-screen/english/flood-english')}
+                        onPress={() => router.push('/disaster-screen/flood')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Flood
@@ -41,7 +41,7 @@ export default function Dashboard() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-                        onPress={() => router.push('/disaster-screen/english/land-slides-english')}
+                        onPress={() => router.push('/disaster-screen/landSlide')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Land Slides
@@ -50,7 +50,7 @@ export default function Dashboard() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-                        onPress={() => router.push('/disaster-screen/english/earthquake-english')}
+                        onPress={() => router.push('/disaster-screen/earthquake')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Earthquake
@@ -59,7 +59,7 @@ export default function Dashboard() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-                        onPress={() => router.push('/disaster-screen/english/storm-english')}
+                        onPress={() => router.push('/disaster-screen/storm')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Storms
@@ -68,7 +68,7 @@ export default function Dashboard() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/settings/settings-english')}
+                        onPress={() => router.push('/settings/settings')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Settings
@@ -77,7 +77,7 @@ export default function Dashboard() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/notifications/notifications-english')}
+                        onPress={() => router.push('/notifications/notifications')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Notifications
