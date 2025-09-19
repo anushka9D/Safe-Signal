@@ -2,7 +2,7 @@ import { Text, View, TouchableOpacity, SafeAreaView, StatusBar } from "react-nat
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 
-export default function StormEnglish() {
+export default function Flood() {
     const router = useRouter();
 
     return (
@@ -19,7 +19,7 @@ export default function StormEnglish() {
                         <Ionicons name="arrow-back" size={24} color="#4B5563" />
                     </TouchableOpacity>
                     <Text className="text-2xl font-bold text-gray-800">
-                        Storm Dashboard
+                        Flood Dashboard
                     </Text>
                     <View className="w-10" />
                 </View>
@@ -28,7 +28,7 @@ export default function StormEnglish() {
 
             {/* Navigation Buttons */}
             <View className="flex-1 justify-center">
-                <View className="flex-1 flex-row flex-wrap justify-between p-4">
+                <View className="flex-1 flex-row flex-wrap justify-between p-10">
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
@@ -41,7 +41,7 @@ export default function StormEnglish() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/articles/english/storm-article-1-english')}
+                        onPress={() => router.push('/articles/english/flood-article-1-english')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Article 01
@@ -50,7 +50,7 @@ export default function StormEnglish() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/articles/english/storm-article-2-english')}
+                        onPress={() => router.push('/articles/english/flood-article-2-english')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Article 02
@@ -59,7 +59,7 @@ export default function StormEnglish() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-                        onPress={() => router.push('/articles/english/storm-article-3-english')}
+                        onPress={() => router.push('/articles/english/flood-article-3-english')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Article 03
@@ -68,7 +68,7 @@ export default function StormEnglish() {
 
                     <TouchableOpacity
                         className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[20%] justify-center"
-                        onPress={() => router.push('/contacts/english/storm-contacts-english')}
+                        onPress={() => router.push('/contacts/english/flood-contacts-english')}
                     >
                         <Text className="text-white text-lg font-semibold text-center">
                             Contact Numbers
