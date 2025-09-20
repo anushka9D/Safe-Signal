@@ -1,7 +1,6 @@
 import * as LocalAuthentication from 'expo-local-authentication'
 import * as SecureStore from 'expo-secure-store'
 
-// Secure key helpers (SecureStore only allows [A-Za-z0-9._-])
 const safe = (s: string) => s.replace(/[^a-zA-Z0-9._-]/g, '_')
 const bioKey = (uid: string) => `bio_${safe(uid)}_enabled`
 const lockKey = (uid: string) => `lock_${safe(uid)}_enabled`
@@ -13,7 +12,7 @@ export async function getSupport() {
     return { hasHardware, enrolled, types }
 }
 
-// biometrics enabled flag (per user, per device)
+
 export async function isEnabledForUser(uid: string) {
     return (await SecureStore.getItemAsync(bioKey(uid))) === '1'
 }
@@ -24,7 +23,7 @@ export async function disableForUser(uid: string) {
     await SecureStore.deleteItemAsync(bioKey(uid))
 }
 
-// app lock flag (keeps session, but requires biometric to unlock)
+
 export async function setLocked(uid: string) {
     await SecureStore.setItemAsync(lockKey(uid), '1')
 }
