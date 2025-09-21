@@ -2,7 +2,7 @@ import { Text, View, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Imag
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 
-export default function Earthquake() {
+export default function Flood() {
     const router = useRouter();
 
     const safeLocations = [
@@ -20,56 +20,55 @@ export default function Earthquake() {
 
     const articles = [
         {
-            title: "The Science of Earthquakes Understanding Tectonic Plates and Faults",
+            title: "The Science of Floods Understanding Tectonic Plates and Faults",
             author: "Shivani Vora",
             date: "July 05, 2021",
-            image: require('../../assets/images/disasters/earthquake-damage-2.jpg')
+            image: require('../../assets/images/disasters/flood-damage-2.jpg')
         },
         {
-            title: "The Science of Earthquakes Understanding Tectonic Plates and Faults",
-            author: "Shivani Vora", 
-            date: "July 05, 2021",
-            image: require('../../assets/images/disasters/earthquake-damage-3.jpg')
-        },
-        {
-            title: "The Science of Earthquakes Understanding Tectonic Plates and Faults",
+            title: "The Science of Floods Understanding Tectonic Plates and Faults",
             author: "Shivani Vora",
-            date: "July 05, 2021", 
-            image: require('../../assets/images/disasters/earthquake-damage-4.jpg')
+            date: "July 05, 2021",
+            image: require('../../assets/images/disasters/flood-damage-3.jpg')
+        },
+        {
+            title: "The Science of Floods Understanding Tectonic Plates and Faults",
+            author: "Shivani Vora",
+            date: "July 05, 2021",
+            image: require('../../assets/images/disasters/flood-damage-4.jpg')
         }
     ];
 
     return (
         <SafeAreaView className="flex-1 bg-white">
             <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-            
+
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
                 {/* Hero Header */}
                 <View className="relative h-48">
-                    <Image 
-                        source={require('../../assets/images/disasters/earthquake-damage-1.jpg')}
+                    <Image
+                        source={require('../../assets/images/disasters/flood-damage-1.jpg')}
                         className="absolute inset-0 w-full h-full"
                         resizeMode="cover"
                     />
-                    
+
                     {/* Overlay */}
                     <View className="absolute inset-0 bg-black/40" />
-                    
+
                     {/* Header Content */}
-                    <View className="flex-1 px-6 py-4 pt-12 justify-between">
-                        <View className="flex-row items-center justify-between mt-8">
+                    <View className="absolute top-12 left-0 right-0 px-6 py-4 mt-8">
+                        <View className="flex-row items-center justify-between">
                             <TouchableOpacity
                                 className="bg-white/20 rounded-full p-2"
                                 onPress={() => router.back()}
                             >
                                 <Ionicons name="arrow-back" size={24} color="white" />
                             </TouchableOpacity>
+                            <Text className="text-white text-3xl font-bold flex-1 text-center">
+                                Floods
+                            </Text>
                             <View className="w-10" />
                         </View>
-                        
-                        <Text className="text-white text-3xl font-bold mb-4">
-                            Earthquake
-                        </Text>
                     </View>
                 </View>
 
@@ -88,7 +87,7 @@ export default function Earthquake() {
 
                     <View className="space-y-3 gap-3">
                         {safeLocations.map((location, index) => (
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 key={index}
                                 className="bg-white rounded-xl p-4"
                                 onPress={() => router.push('/')}
@@ -116,28 +115,28 @@ export default function Earthquake() {
                     <Text className="text-xl font-bold text-gray-800 mb-4">
                         Feature Articles
                     </Text>
-                    
+
                     <View className="space-y-4">
                         {articles.map((article, index) => (
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 key={index}
                                 className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
                                 onPress={() => router.push('/articles/article')}
                             >
                                 <View className="flex-row">
                                     {/* Article Image */}
-                                    <Image 
+                                    <Image
                                         source={article.image}
                                         className="w-24 h-20"
                                         resizeMode="cover"
                                     />
-                                    
+
                                     {/* Article Content */}
                                     <View className="flex-1 p-3">
                                         <Text className="font-semibold text-gray-800 text-sm leading-5 mb-2">
                                             {article.title}
                                         </Text>
-                                        
+
                                         <View className="flex-row items-center">
                                             <View className="w-6 h-6 bg-orange-500 rounded-full mr-2 items-center justify-center">
                                                 <Text className="text-white text-xs font-bold">S</Text>
@@ -159,8 +158,8 @@ export default function Earthquake() {
                 </View>
 
                 {/* Emergency Contacts */}
-                <TouchableOpacity 
-                    className="bg-black mx-4 rounded-2xl p-6 mb-8"
+                <TouchableOpacity
+                    className="bg-black mx-4 rounded-2xl p-4 mb-8"
                     onPress={() => router.push('/contacts/contacts')}
                 >
                     <Text className="text-white text-xl font-bold text-center">
