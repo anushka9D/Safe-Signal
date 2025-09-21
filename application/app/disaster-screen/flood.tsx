@@ -15,11 +15,6 @@ export default function Earthquake() {
             name: "District General Hospital",
             location: "Gampaha",
             distance: "3 Km Away"
-        },
-        {
-            name: "Pradeshiya Sabha Building",
-            location: "Minuwangoda",
-            distance: "0.75 Km Away"
         }
     ];
 
@@ -73,7 +68,7 @@ export default function Earthquake() {
                         </View>
                         
                         <Text className="text-white text-3xl font-bold mb-4">
-                            Earthquakes
+                            Earthquake
                         </Text>
                     </View>
                 </View>
@@ -91,7 +86,7 @@ export default function Earthquake() {
                         </TouchableOpacity>
                     </View>
 
-                    <View className="space-y-3">
+                    <View className="space-y-3 gap-3">
                         {safeLocations.map((location, index) => (
                             <TouchableOpacity 
                                 key={index}
