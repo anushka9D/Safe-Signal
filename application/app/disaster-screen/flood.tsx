@@ -116,7 +116,7 @@ export default function Flood() {
                         Feature Articles
                     </Text>
 
-                    <View className="space-y-4">
+                    <View className="space-y-4 gap-3">
                         {articles.map((article, index) => (
                             <TouchableOpacity
                                 key={index}
@@ -127,7 +127,7 @@ export default function Flood() {
                                     {/* Article Image */}
                                     <Image
                                         source={article.image}
-                                        className="w-24 h-20"
+                                        className="w-24 h-full"
                                         resizeMode="cover"
                                     />
 
