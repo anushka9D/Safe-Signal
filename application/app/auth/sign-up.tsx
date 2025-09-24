@@ -7,6 +7,7 @@ import { auth, } from '../../config/firebase-config'
 import { db } from '../../config/firebase-config'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { ensureUserDoc, routeByRole } from '../../lib/users'
+import { getUserLocationOnce } from '@/lib/location'
 
 export default function SignUp() {
   const [name, setName] = useState('')
@@ -21,13 +22,24 @@ export default function SignUp() {
       if (disabled) return
       setLoading(true)
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), password)
+
+      const loc = await getUserLocationOnce();
+
       await ensureUserDoc(cred.user)
 
       await setDoc(doc(db, 'users', cred.user.uid), {
         email: email.trim(),
         name: name.trim(),
-        role: 'user',                 
-        createdAt: serverTimestamp(), 
+        role: 'user',
+        createdAt: serverTimestamp(),
+        location: loc
+        ? {
+            lat: loc.lat,
+            lng: loc.lng,
+            accuracy: loc.accuracy ?? null,
+            capturedAt: loc.capturedAt,
+          }
+        : null,
       }, { merge: true })
 
       router.replace('/')

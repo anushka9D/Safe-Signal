@@ -14,14 +14,21 @@
             "backgroundColor": "#ffffff"
         },
         "ios": {
-            "supportsTablet": true
+            "supportsTablet": true,
+            "infoPlist": {
+                "NSLocationWhenInUseUsageDescription": "We use your location to tailor nearby safety alerts and services."
+            }
         },
         "android": {
             "adaptiveIcon": {
                 "foregroundImage": "./assets/images/adaptive-icon.png",
                 "backgroundColor": "#ffffff"
             },
-            "edgeToEdgeEnabled": true
+            "edgeToEdgeEnabled": true,
+            "permissions": [
+                "ACCESS_COARSE_LOCATION",
+                "ACCESS_FINE_LOCATION"
+            ]
         },
         "web": {
             "bundler": "metro",
