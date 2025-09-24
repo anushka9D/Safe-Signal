@@ -6,6 +6,7 @@ import { useState } from 'react';
 export default function Notifications() {
     const router = useRouter();
     const [activeFilter, setActiveFilter] = useState('All');
+    const [expandedNotifications, setExpandedNotifications] = useState<Record<number, boolean>>({});
 
         const notifications = [
         {
@@ -21,7 +22,7 @@ export default function Notifications() {
             id: 2,
             type: "alert",
             title: "🌍 EARTHQUAKE DETECTED:",
-            message: "A 6.2 magnitude earthquake was recorded 12 km from your location. Expect aftershocks. Avoid damaged buildings.",
+            message: "A 6 magnitude earthquake was recorded 12 km from your location. Expect aftershocks. Avoid damaged buildings.",
             date: "24 Sep 2025 at 13:50",
             hasMore: true,
             isRead: true
@@ -76,6 +77,20 @@ export default function Notifications() {
         }
     };
 
+        // Get first sentence of a message
+    const getFirstSentence = (message: string) => {
+        const firstSentence = message.split('.')[0];
+        return firstSentence + (message.includes('.') ? '.' : '');
+    };
+
+    // Toggle expanded state for a notification
+    const toggleExpanded = (notificationId: number) => {
+        setExpandedNotifications(prev => ({
+            ...prev,
+            [notificationId]: !prev[notificationId]
+        }));
+    };
+
     const filteredNotifications = getFilteredNotifications();
 
     return (
@@ -127,7 +142,7 @@ export default function Notifications() {
             </View>
 
             {/* Notifications List */}
-            <ScrollView className="flex-1 px-4 pt-4">
+             <ScrollView className="flex-1 px-4 pt-4">
                 {filteredNotifications.length === 0 ? (
                     <View className="flex-1 items-center justify-center mt-20">
                         <Ionicons name="notifications-off-outline" size={48} color="#9CA3AF" />
@@ -136,32 +151,41 @@ export default function Notifications() {
                         </Text>
                     </View>
                 ) : (
-                    filteredNotifications.map((notification, index) => (
-                        <View 
-                            key={notification.id} 
-                            className={`mb-4 p-4 rounded-lg ${notification.isRead ? 'bg-gray-100' : 'bg-white'} ${notification.isRead ? '' : 'shadow-sm'}`}
-                        >
-                            <View className="flex-row items-start">
-                                <View className="mr-3 mt-1">
-                                    <Ionicons name="alert-circle" size={24} color="#d60000ff" />
-                                </View>
-                                <View className="flex-1">
-                                    <Text className={`font-medium mb-2 ${notification.isRead ? 'text-gray-500' : 'text-gray-700'}`}>
-                                        {notification.title}
-                                    </Text>
-                                    <Text className={`text-sm leading-5 mb-3 ${notification.isRead ? 'text-gray-400' : 'text-gray-600'}`}>
-                                        {notification.message}
-                                        {notification.hasMore && (
-                                            <Text className="text-pink-500 font-medium"> View more</Text>
-                                        )}
-                                    </Text>
-                                    <Text className={`text-xs ${notification.isRead ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        {notification.date}
-                                    </Text>
+                    filteredNotifications.map((notification, index) => {
+                        const isExpanded = expandedNotifications [notification.id];
+                        const displayMessage = isExpanded ? notification.message : getFirstSentence(notification.message);
+                        
+                        return (
+                            <View 
+                                key={notification.id} 
+                                className={`mb-4 p-4 rounded-lg ${notification.isRead ? 'bg-gray-100' : 'bg-white'} ${notification.isRead ? '' : 'shadow-sm'}`}
+                            >
+                                <View className="flex-row items-start">
+                                    <View className="mr-3 mt-1">
+                                        <Ionicons name="alert-circle" size={24} color="#d60000ff" />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className={`font-medium mb-2 ${notification.isRead ? 'text-gray-500' : 'text-gray-700'}`}>
+                                            {notification.title}
+                                        </Text>
+                                        <Text className={`text-sm leading-5 mb-3 ${notification.isRead ? 'text-gray-400' : 'text-gray-600'}`}>
+                                            {displayMessage}
+                                            {notification.hasMore && (
+                                                <TouchableOpacity onPress={() => toggleExpanded(notification.id)}>
+                                                    <Text className="text-pink-500 text-sm">
+                                                        {isExpanded ? ' View less' : ' View more'}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        </Text>
+                                        <Text className={`text-xs ${notification.isRead ? 'text-gray-400' : 'text-gray-500'}`}>
+                                            {notification.date}
+                                        </Text>
+                                    </View>
                                 </View>
                             </View>
-                        </View>
-                    ))
+                        );
+                    })
                 )}
             </ScrollView>
         </SafeAreaView>
