@@ -6,6 +6,7 @@ import { onAuthStateChanged, signOut, User } from 'firebase/auth'
 import { auth } from '../../config/firebase-config'
 import { setLocked, clearLocked } from '../../lib/biometrics'
 import { useEffect, useState } from 'react'
+import { Ionicons } from '@expo/vector-icons'
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null)
@@ -112,6 +113,14 @@ export default function Dashboard() {
             {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Logout</Text>}
           </Pressable>
         </View>
+
+        {/* Floating Map Button */}
+            <TouchableOpacity
+ className="absolute bottom-6 right-6 bg-blue-500 rounded-full p-4 shadow-lg"
+                onPress={() => router.push('/map-navigation/' as any)}
+            >
+                <Ionicons name="map" size={28} color="white" />
+            </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   )
