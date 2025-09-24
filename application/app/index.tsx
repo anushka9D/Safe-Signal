@@ -12,10 +12,10 @@ import { auth } from '../config/firebase-config'
 export default function HomeScreen() {
   const [signedIn, setSignedIn] = useState(false)
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setSignedIn(!!u))
-    return unsub
-  }, [])
+  // useEffect(() => {
+  //   const unsub = onAuthStateChanged(auth, (u) => setSignedIn(!!u))
+  //   return unsub
+  // }, [])
 
   return (
     <SafeAreaView className="flex-1 bg-[#0b1220]">
@@ -44,14 +44,14 @@ export default function HomeScreen() {
           </Text>
 
           <View className="flex-row gap-3 flex-wrap mt-2">
-            {signedIn ? (
+            {/* {signedIn ? (
              
               <Link href="/auth/login" asChild>
                 <Pressable className="bg-white/10 border border-white/15 rounded-xl px-4 py-3">
                   <Text className="text-white font-extrabold">Continue</Text>
                 </Pressable>
               </Link>
-            ) : (
+            ) : ( */}
               
               <>
                 <Link href="/auth/login" asChild>
@@ -66,7 +66,7 @@ export default function HomeScreen() {
                   </Pressable>
                 </Link>
               </>
-            )}
+            {/* )} */}
           </View>
         </View>
       </ScrollView>
