@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Alert, Linking, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeLocation } from './safeLocations';
+import { FamilyMember } from './familyService';
 
 interface MapFallbackProps {
   userLocation?: {
@@ -9,10 +10,11 @@ interface MapFallbackProps {
     longitude: number;
   };
   safeLocations?: SafeLocation[];
+  familyMembers?: FamilyMember[];
   onLocationPress?: (location: SafeLocation) => void;
 }
 
-export default function MapFallback({ userLocation, safeLocations = [], onLocationPress }: MapFallbackProps) {
+export default function MapFallback({ userLocation, safeLocations = [], familyMembers = [], onLocationPress }: MapFallbackProps) {
   const openExternalMap = () => {
     if (!userLocation || safeLocations.length === 0) return;
 
@@ -49,7 +51,7 @@ export default function MapFallback({ userLocation, safeLocations = [], onLocati
       )}
       
       <Text className="text-sm text-gray-500 mt-2 text-center">
-        Showing {safeLocations.length} safe locations nearby
+        Showing {safeLocations.length} safe locations and {familyMembers.filter(m => m.location).length} family members
       </Text>
 
       <TouchableOpacity

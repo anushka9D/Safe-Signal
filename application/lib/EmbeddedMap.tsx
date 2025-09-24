@@ -4,6 +4,7 @@ import { WebView } from 'react-native-webview';
 import { SafeLocation } from './safeLocations';
 import MapFallback from './MapFallback';
 import { NavigationState } from './navigationService';
+import { FamilyMember } from './familyService';
 
 interface EmbeddedMapProps {
   userLocation?: {
@@ -11,6 +12,7 @@ interface EmbeddedMapProps {
     longitude: number;
   };
   safeLocations?: SafeLocation[];
+  familyMembers?: FamilyMember[];
   height?: number;
   onLocationPress?: (location: SafeLocation) => void;
   navigationState?: NavigationState;
@@ -20,6 +22,7 @@ interface EmbeddedMapProps {
 export default function EmbeddedMap({ 
   userLocation, 
   safeLocations = [], 
+  familyMembers = [],
   height = 400,
   onLocationPress,
   navigationState,
@@ -49,6 +52,8 @@ export default function EmbeddedMap({
       case 'police': return 'blue';
       case 'shelter': return 'green';
       case 'emergency_center': return 'purple';
+      case 'family_safe': return '#10B981'; // Green for safe family members
+      case 'family_danger': return '#EF4444'; // Red for family members in danger
       default: return 'gray';
     }
   };
@@ -164,6 +169,44 @@ export default function EmbeddedMap({
           `;
         }).join('')}
 
+        // Add family member markers
+        ${familyMembers.filter(member => member.location).map((member, index) => {
+          const color = getMarkerColor(member.status === 'safe' ? 'family_safe' : 'family_danger');
+          const memberName = member.name.replace(/"/g, '\\"');
+          const memberRelationship = member.relationship.replace(/"/g, '\\"');
+          const statusText = member.status === 'safe' ? 'Safe' : 'In Danger';
+          const statusEmoji = member.status === 'safe' ? '✅' : '⚠️';
+          
+          return `
+        var familyMarker${index} = L.marker([${member.location!.latitude}, ${member.location!.longitude}])
+          .addTo(map)
+          .bindPopup(\`
+            <div style="min-width: 180px;">
+              <h3 style="margin: 0 0 8px 0; color: #333;">${statusEmoji} ${memberName}</h3>
+              <p style="margin: 0 0 4px 0; color: #666; font-size: 12px; text-transform: capitalize;">${memberRelationship}</p>
+              <p style="margin: 0 0 8px 0; color: ${member.status === 'safe' ? '#10B981' : '#EF4444'}; font-size: 12px; font-weight: bold;">${statusText}</p>
+              ${member.location!.address ? `<p style="margin: 0 0 8px 0; color: #888; font-size: 11px;">${member.location!.address}</p>` : ''}
+              <button onclick="callFamilyMember('${member.phoneNumber}')"
+                style="background: #34C759; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 8px;">
+                📞 Call
+              </button>
+              <button onclick="sendSOS('${member.id}')"
+                style="background: #FF3B30; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                🆘 SOS
+              </button>
+            </div>
+          \`);
+        
+        var familyIcon${index} = L.divIcon({
+          className: 'family-member-marker',
+          html: '<div style="background: ${color}; width: 18px; height: 18px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.4); position: relative;"><div style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: white; border-radius: 50%; border: 1px solid ${color};"></div></div>',
+          iconSize: [18, 18],
+          iconAnchor: [9, 9]
+        });
+        familyMarker${index}.setIcon(familyIcon${index});
+          `;
+        }).join('')}
+
         // Function to create realistic route with multiple waypoints
         function createRealisticRoute(start, end) {
           var points = [start];
@@ -231,6 +274,14 @@ export default function EmbeddedMap({
 
         function callLocation(phone) {
           window.ReactNativeWebView.postMessage('call:' + phone);
+        }
+
+        function callFamilyMember(phoneNumber) {
+          window.ReactNativeWebView.postMessage('call_family:' + phoneNumber);
+        }
+
+        function sendSOS(memberId) {
+          window.ReactNativeWebView.postMessage('send_sos:' + memberId);
         }
 
         // Function to update navigation state from React Native
@@ -305,11 +356,11 @@ export default function EmbeddedMap({
         }
 
         // Fit map to show all markers if we have locations
-        ${safeLocations.length > 0 && userLocation ? `
-        var group = new L.featureGroup([
-          userMarker,
-          ${safeLocations.map((_, index) => `marker${index}`).join(', ')}
-        ]);
+        ${(safeLocations.length > 0 || familyMembers.filter(m => m.location).length > 0) && userLocation ? `
+        var allMarkers = [userMarker];
+        ${safeLocations.map((_, index) => `allMarkers.push(marker${index});`).join('')}
+        ${familyMembers.filter(m => m.location).map((_, index) => `allMarkers.push(familyMarker${index});`).join('')}
+        var group = new L.featureGroup(allMarkers);
         map.fitBounds(group.getBounds().pad(0.1));
         ` : ''}
 
@@ -342,6 +393,14 @@ export default function EmbeddedMap({
     } else if (message.startsWith('call:')) {
       const phoneNumber = message.replace('call:', '');
       console.log('Call:', phoneNumber);
+    } else if (message.startsWith('call_family:')) {
+      const phoneNumber = message.replace('call_family:', '');
+      console.log('Call family member:', phoneNumber);
+      // You can implement actual calling functionality here
+    } else if (message.startsWith('send_sos:')) {
+      const memberId = message.replace('send_sos:', '');
+      console.log('Send SOS to family member:', memberId);
+      // You can implement SOS functionality here
     } else if (message.startsWith('show_details:')) {
       const locationId = message.replace('show_details:', '');
       const location = safeLocations.find(loc => loc.id === locationId);
@@ -363,6 +422,7 @@ export default function EmbeddedMap({
         <MapFallback
           userLocation={userLocation}
           safeLocations={safeLocations}
+          familyMembers={familyMembers}
           onLocationPress={onLocationPress}
         />
       </View>

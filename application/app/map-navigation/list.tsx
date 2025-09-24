@@ -21,6 +21,7 @@ import {
 } from '../../lib/safeLocations';
 import EmbeddedMap from '../../lib/EmbeddedMap';
 import { navigationTracker, NavigationState } from '../../lib/navigationService';
+import FooterNavigation from '../../lib/FooterNavigation';
 
 export default function SafeLocationsList() {
   const router = useRouter();
@@ -119,6 +120,12 @@ export default function SafeLocationsList() {
     }
   };
 
+  const callLocation = (phoneNumber: string) => {
+    Linking.openURL(`tel:${phoneNumber}`).catch(() => {
+      Alert.alert('Error', 'Could not open phone app.');
+    });
+  };
+
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-white justify-center items-center">
@@ -142,7 +149,7 @@ export default function SafeLocationsList() {
             <Ionicons name="arrow-back" size={24} color="#4B5563" />
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-gray-800">
-            Safe Locations (5km)
+            Safe Locations ({safeLocations.length})
           </Text>
           <TouchableOpacity
             className="bg-gray-100 rounded-full p-2 mt-8"
@@ -155,11 +162,7 @@ export default function SafeLocationsList() {
 
       {/* Map Overview - Toggle */}
       {showMapOverview && userLocation && (
-        <View className="bg-white mx-4 my-2 rounded-xl overflow-hidden shadow-sm">
-          <View className="p-3 border-b border-gray-100">
-            <Text className="text-lg font-semibold text-gray-800">Overview Map</Text>
-            <Text className="text-sm text-gray-600">{safeLocations.length} locations within 5km</Text>
-          </View>
+        <View className="h-64 bg-gray-200">
           <EmbeddedMap
             userLocation={{
               latitude: userLocation.coords.latitude,
@@ -168,86 +171,87 @@ export default function SafeLocationsList() {
             safeLocations={safeLocations}
             height={250}
             onLocationPress={navigateToLocation}
+            navigationState={navigationState || undefined}
+            onStartNavigation={startNavigation}
           />
         </View>
       )}
 
       {/* Locations List */}
-      <ScrollView className="flex-1 px-4 py-4">
-        {safeLocations.map((location) => (
-          <View
-            key={location.id}
-            className="bg-white rounded-xl p-4 mb-3 shadow-sm"
+      <ScrollView className="flex-1 px-4 py-4 pb-20">
+        {safeLocations.map((location, index) => (
+          <TouchableOpacity
+            key={`${location.id}-${index}`}
+            className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-gray-100"
+            onPress={() => navigateToLocation(location)}
           >
-            <View className="flex-row items-center justify-between mb-3">
-              <View className="flex-row items-center flex-1">
+            <View className="flex-row items-center">
+              <View className="bg-blue-100 rounded-full p-3 mr-4">
                 <Ionicons
-                  name={getLocationIcon(location.type) as any}
+                  name={getLocationIcon(location.type)}
                   size={24}
-                  color="#4B5563"
+                  color="#3B82F6"
                 />
-                <View className="ml-3 flex-1">
-                  <Text className="text-lg font-semibold text-gray-800">
-                    {location.name}
-                  </Text>
-                  <Text className="text-sm text-gray-600">
+              </View>
+              
+              <View className="flex-1">
+                <Text className="text-lg font-semibold text-gray-800 mb-1">
+                  {location.name}
+                </Text>
+                <Text className="text-sm text-gray-600 mb-2">
+                  {location.address}
+                </Text>
+                <View className="flex-row items-center">
+                  <Ionicons name="location" size={16} color="#6B7280" />
+                  <Text className="text-sm text-gray-500 ml-1">
                     {location.distance.toFixed(1)} km away
                   </Text>
+                  {location.phone && (
+                    <>
+                      <Text className="text-gray-300 mx-2">•</Text>
+                      <TouchableOpacity onPress={() => callLocation(location.phone!)}>
+                        <View className="flex-row items-center">
+                          <Ionicons name="call" size={16} color="#3B82F6" />
+                          <Text className="text-sm text-blue-600 ml-1">
+                            Call
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
               </View>
-            </View>
-            
-            <Text className="text-gray-600 mb-3">{location.address}</Text>
-            
-            {/* Mini Map for each location */}
-            <View className="mb-3 rounded-lg overflow-hidden border border-gray-200">
-              <EmbeddedMap
-                userLocation={userLocation ? {
-                  latitude: userLocation.coords.latitude,
-                  longitude: userLocation.coords.longitude,
-                } : undefined}
-                safeLocations={[location]}
-                height={150}
-                onLocationPress={navigateToLocation}
-              />
-            </View>
-            
-            <View className="flex-row space-x-2">
-              <TouchableOpacity
-                className="bg-blue-500 px-4 py-3 rounded-lg flex-1"
-                onPress={() => startNavigation(location)}
-              >
-                <Text className="text-white text-center font-medium">
-                  🧭 Start Navigation
-                </Text>
-              </TouchableOpacity>
               
-              {location.phone && (
-                <TouchableOpacity
-                  className="bg-green-500 px-4 py-3 rounded-lg flex-1"
-                  onPress={() => {
-                    Linking.openURL(`tel:${location.phone}`).catch(() => {
-                      Alert.alert('Error', 'Could not open phone app.');
-                    });
-                  }}
-                >
-                  <Text className="text-white text-center font-medium">
-                    Call
+              <View className="items-center">
+                <View className="bg-green-100 rounded-full px-3 py-1 mb-2">
+                  <Text className="text-xs font-semibold text-green-800 capitalize">
+                    {location.type.replace('_', ' ')}
                   </Text>
-                </TouchableOpacity>
-              )}
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
         
         {safeLocations.length === 0 && (
-          <View className="flex-1 justify-center items-center py-20">
-            <Ionicons name="location-outline" size={64} color="#9CA3AF" />
-            <Text className="text-gray-500 text-lg mt-4">No safe locations within 5km</Text>
-            <Text className="text-gray-400 text-sm mt-2">Try moving to a different area</Text>
+          <View className="flex-1 justify-center items-center py-12">
+            <Ionicons name="location-outline" size={64} color="#D1D5DB" />
+            <Text className="text-gray-500 text-lg mt-4">
+              No safe locations found within 5km
+            </Text>
+            <TouchableOpacity
+              className="mt-4 bg-blue-500 px-6 py-3 rounded-lg"
+              onPress={loadData}
+            >
+              <Text className="text-white font-semibold">Try Again</Text>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
+
+      {/* Footer Navigation */}
+      <FooterNavigation activeTab="map" />
     </SafeAreaView>
   );
 }

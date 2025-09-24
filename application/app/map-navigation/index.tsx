@@ -21,16 +21,22 @@ import {
 } from '../../lib/safeLocations';
 import EmbeddedMap from '../../lib/EmbeddedMap';
 import { navigationTracker, NavigationState } from '../../lib/navigationService';
+import FooterNavigation from '../../lib/FooterNavigation';
+import { auth, db } from '../../config/firebase-config';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { FamilyMember } from '../../lib/familyService';
 
 export default function MapNavigation() {
   const router = useRouter();
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const [safeLocations, setSafeLocations] = useState<(SafeLocation & { distance: number })[]>([]);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [navigationState, setNavigationState] = useState<NavigationState | null>(null);
 
   useEffect(() => {
     initializeData();
+    loadFamilyMembers(); // Load family members by default
   }, []);
 
   // Load safe locations after user location is obtained
@@ -74,6 +80,51 @@ export default function MapNavigation() {
     } catch (error) {
       console.error('Error loading safe locations:', error);
       setSafeLocations([]);
+    }
+  };
+
+  const loadFamilyMembers = async () => {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        console.log('No user logged in');
+        setFamilyMembers([]); // Clear family members if no user
+        return;
+      }
+
+      console.log('Loading family members for user:', currentUser.uid);
+      
+      const familyRef = collection(db, 'family');
+      // Only load family members added by the current authenticated user
+      const q = query(familyRef, where('addedBy', '==', currentUser.uid));
+      const querySnapshot = await getDocs(q);
+      
+      const members: FamilyMember[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        
+        // Double-check security: only include if addedBy matches current user
+        if (data.addedBy === currentUser.uid) {
+          members.push({ 
+            id: doc.id, 
+            name: data.name || '',
+            phoneNumber: data.phoneNumber || '',
+            relationship: data.relationship || '',
+            email: data.email || '',
+            status: data.status || 'safe',
+            location: data.location || null,
+            lastUpdated: data.lastUpdated?.toDate() || new Date(),
+            userId: data.userId || '',
+            addedBy: data.addedBy || ''
+          } as FamilyMember);
+        }
+      });
+      
+      setFamilyMembers(members);
+      console.log(`Loaded ${members.length} family members for current user only`);
+    } catch (error) {
+      console.error('Error loading family members:', error);
+      setFamilyMembers([]);
     }
   };
 
@@ -161,16 +212,16 @@ export default function MapNavigation() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-white justify-center items-center">
-        <ActivityIndicator size="large" color="#4B5563" />
-        <Text className="mt-4 text-gray-600">Getting your location...</Text>
+      <SafeAreaView className="flex-1 bg-gray-500 justify-center items-center">
+        <ActivityIndicator size="large" color="#FFFFFF" />
+        <Text className="mt-4 text-white">Getting your location...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+    <SafeAreaView className="flex-1 bg-gray-500">
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* Header */}
       <View className="bg-white shadow-sm px-6 py-4 pt-12 z-10">
@@ -201,7 +252,7 @@ export default function MapNavigation() {
       </View>
 
       {/* Interactive Map */}
-      <View className="flex-1">
+      <View className="flex-1 mb-16">
         {userLocation ? (
           <View className="flex-1">
             <EmbeddedMap
@@ -210,6 +261,7 @@ export default function MapNavigation() {
                 longitude: userLocation.coords.longitude,
               }}
               safeLocations={safeLocations}
+              familyMembers={familyMembers} // Always show family members
               height={undefined} // Let it fill the container
               onLocationPress={navigateToLocation}
               navigationState={navigationState || undefined}
@@ -254,7 +306,7 @@ export default function MapNavigation() {
           </View>
         ) : (
           <View className="flex-1 justify-center items-center">
-            <Text className="text-gray-600">Unable to get your location</Text>
+            <Text className="text-white">Unable to get your location</Text>
             <TouchableOpacity
               className="mt-4 bg-blue-500 px-6 py-3 rounded-lg"
               onPress={initializeData}
@@ -266,7 +318,7 @@ export default function MapNavigation() {
       </View>
 
       {/* Bottom Action Button */}
-      <View className="absolute bottom-6 left-6 right-6">
+      <View className="absolute bottom-28 left-6 right-6">
         {navigationState?.isNavigating ? (
           <TouchableOpacity 
             className="bg-red-500 rounded-full py-4 px-6 flex-row items-center justify-center shadow-lg"
@@ -289,6 +341,9 @@ export default function MapNavigation() {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Footer Navigation */}
+      <FooterNavigation activeTab="map" />
     </SafeAreaView>
   );
 }
