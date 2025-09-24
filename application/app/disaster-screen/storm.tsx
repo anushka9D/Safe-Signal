@@ -116,7 +116,7 @@ export default function Storm() {
                         Feature Articles
                     </Text>
                     
-                    <View className="space-y-4">
+                    <View className="space-y-4 gap-3">
                         {articles.map((article, index) => (
                             <TouchableOpacity 
                                 key={index}
