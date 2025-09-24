@@ -69,10 +69,10 @@ export default function SignUp() {
         className="flex-1"
         contentContainerClassName="flex-grow p-5 pb-32 gap-3 justify-center"
         keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
-     
+
         <Text className="text-white text-3xl font-extrabold">Create account </Text>
         <Text className="text-slate-300 mt-2">Join Safe Signal</Text>
 
@@ -159,8 +159,8 @@ export default function SignUp() {
             <Text className="text-white font-semibold">Log in</Text>
           </Link>
         </View>
-      
-    </ScrollView>
+
+      </ScrollView>
     </KeyboardAvoidingView >
   )
 }
