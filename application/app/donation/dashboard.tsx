@@ -2,7 +2,7 @@ import { Text, View, TouchableOpacity, SafeAreaView, StatusBar } from "react-nat
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 
-export default function Location() {
+export default function DonationDashboard() {
     const router = useRouter();
 
     return (
@@ -19,7 +19,7 @@ export default function Location() {
                         <Ionicons name="arrow-back" size={24} color="#4B5563" />
                     </TouchableOpacity>
                     <Text className="text-2xl font-bold text-gray-800">
-                        Safe Location Details
+                        Donation Dashboard
                     </Text>
                     <View className="w-10" />
                 </View>
