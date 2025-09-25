@@ -1,127 +1,242 @@
-
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { View, Text, ScrollView, Pressable, Alert, TouchableOpacity, ActivityIndicator } from 'react-native'
-import { router } from 'expo-router'
-import { onAuthStateChanged, signOut, User } from 'firebase/auth'
-import { auth } from '../../config/firebase-config'
-import { setLocked, clearLocked } from '../../lib/biometrics'
+import { Text, View, TouchableOpacity, SafeAreaView, StatusBar, ScrollView } from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react'
-import { Ionicons } from '@expo/vector-icons'
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../../config/firebase-config';
 
-export default function Dashboard() {
-  const [user, setUser] = useState<User | null>(null)
-  const [busy, setBusy] = useState(false)
+export default function UserDashboard() {
+    const router = useRouter();
+    const [user, setUser] = useState<User | null>(null);
+    const [userName, setUserName] = useState('---');
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, setUser)
-    return unsub
-  }, [])
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            setUser(currentUser);
 
-  const handleLock = async () => {
-    const uid = auth.currentUser?.uid
-    if (!uid) return
-    await setLocked(uid)
-    router.replace('/auth/login')
-  }
+            if (currentUser) {
+                try {
+                    const userDocRef = doc(db, 'users', currentUser.uid);
+                    const userDoc = await getDoc(userDocRef);
 
-  const handleLogout = async () => {
-    const uid = auth.currentUser?.uid
-    try {
-      setBusy(true)
-      if (uid) await clearLocked(uid)
-      await signOut(auth)
-      router.replace('/')
-    } catch (e: any) {
-      Alert.alert('Logout failed', String(e?.message ?? e))
-    } finally {
-      setBusy(false)
-    }
-  }
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        const name = userData.name || currentUser.displayName;
+                        setUserName(name);
+                    } else {
+                        const name = currentUser.displayName || 'User';
+                        setUserName(name);
+                    }
+                } catch (error) {
+                    console.error('Error fetching user data:', error);
+                    const name = currentUser.displayName || 'User';
+                    setUserName(name);
+                }
+            } else {
+                setUserName('User');
+            }
+            setLoading(false);
+        });
 
-  return (
-    <SafeAreaView className="flex-1 bg-[#0b1220]">
-      <ScrollView contentContainerClassName="p-5 gap-5">
-        <Text className="text-white text-2xl font-extrabold">user Dashboard</Text>
-        <Text className="text-slate-400">{user?.email ?? '—'}</Text>
+        return unsubscribe;
+    }, []);
 
-        <View className="flex-1 justify-center">
-          <View className="flex-1 flex-row flex-wrap justify-between p-4">
+    return (
+        <SafeAreaView className="flex-1 bg-gray-50">
+            <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-            <TouchableOpacity
-              className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-              onPress={() => router.push('/dashboards/userDashboard')}
-            >
-              <Text className="text-white text-lg font-semibold text-center">
-                Flood
-              </Text>
-            </TouchableOpacity>
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
 
-            <TouchableOpacity
-              className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-              onPress={() => router.push('/disaster-screen/landSlide')}
-            >
-              <Text className="text-white text-lg font-semibold text-center">
-                Land Slides
-              </Text>
-            </TouchableOpacity>
+                {/* Header Section */}
+                <View className="bg-white px-6 py-4 pt-12 mt-4 mb-4">
 
-            <TouchableOpacity
-              className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-              onPress={() => router.push('/disaster-screen/earthquake')}
-            >
-              <Text className="text-white text-lg font-semibold text-center">
-                Earthquake
-              </Text>
-            </TouchableOpacity>
+                    <View className="flex-row items-center justify-between mb-6">
+                        <View className="flex-1">
+                            <Text className="text-xl font-bold text-gray-800">
+                                Welcome
+                            </Text>
+                            <Text className="text-xl font-bold text-gray-800">
+                                {loading ? 'Loading...' : userName}
+                            </Text>
+                        </View>
 
-            <TouchableOpacity
-              className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-              onPress={() => router.push('/disaster-screen/storm')}
-            >
-              <Text className="text-white text-lg font-semibold text-center">
-                Storms 
-              </Text>
-            </TouchableOpacity>
+                        <View className="flex-row space-x-5 gap-3">
+                            <TouchableOpacity
+                                className="bg-gray-100 rounded-full p-2"
+                                onPress={() => router.push('/')}
+                            >
+                                <Ionicons name="person" size={35} color="#4B5563" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                className="bg-gray-100 rounded-full p-2"
+                                onPress={() => router.push('/notifications/notifications')}
+                            >
+                                <Ionicons name="notifications" size={35} color="#4B5563" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                className="bg-gray-100 rounded-full p-2"
+                                onPress={() => router.push('/settings/settings')}
+                            >
+                                <Ionicons name="settings" size={35} color="#4B5563" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
 
-            <TouchableOpacity
-              className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-              onPress={() => router.push('/settings/settings')}
-            >
-              <Text className="text-white text-lg font-semibold text-center">
-                Settings
-              </Text>
-            </TouchableOpacity>
+                    {/* Upper Cards */}
+                    <View className="flex-row space-x-4 gap-4">
 
-            <TouchableOpacity
-              className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[100%] h-[10%] justify-center"
-              onPress={() => router.push('/notifications/notifications')}
-            >
-              <Text className="text-white text-lg font-semibold text-center">
-                Notifications
-              </Text>
-            </TouchableOpacity>
+                        {/* Badges */}
+                        <TouchableOpacity
+                            className="bg-gray-800 rounded-2xl p-4 flex-1"
+                            onPress={() => router.push('/')}
+                        >
+                            <Text className="text-white font-semibold text-base mb-3 text-center">
+                                Your Badges
+                            </Text>
+                            <View className="flex-row space-x-2 gap-3">
+                                <View className="bg-yellow-100 rounded-full w-11 h-11 items-center justify-center">
+                                    <Text className="text-white text-lg font-bold">🏆</Text>
+                                </View>
+                                <View className="bg-gray-100 rounded-full w-11 h-11 items-center justify-center">
+                                    <Text className="text-white text-lg font-bold">⭐</Text>
+                                </View>
+                                <View className="bg-yellow-100 rounded-full w-11 h-11 items-center justify-center">
+                                    <Text className="text-white text-lg font-bold">🥉</Text>
+                                </View>
+                            </View>
+                        </TouchableOpacity>
 
-          </View>
-        </View>
+                        {/* Saved Location */}
+                        <TouchableOpacity
+                            className="bg-gray-800 rounded-2xl p-4 flex-1"
+                            onPress={() => router.push('/')}
+                        >
+                            <Text className="text-white font-semibold text-base mb-2 text-center">
+                                Saved Location
+                            </Text>
+                            <Text className="text-white text-lg font-bold text-center">
+                                Asgiriya{'\n'}Gampaha
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
 
-        <View className="flex-row gap-3">
-          <Pressable onPress={handleLock} className="px-4 py-3 rounded-xl bg-white/10 border border-white/15">
-            <Text className="text-white font-semibold">Lock app</Text>
-          </Pressable>
+                {/* Recent Notifications Section */}
+                <View className="bg-gray-800 mx-4 rounded-2xl p-4 mb-6 pb-6">
+                    <View className="flex-row items-center justify-between mb-4">
+                        <Text className="text-white font-semibold text-lg">
+                            Recent Notifications
+                        </Text>
 
-          <Pressable onPress={handleLogout} disabled={busy} className="px-4 py-3 rounded-xl bg-white/10 border border-white/15">
-            {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Logout</Text>}
-          </Pressable>
-        </View>
+                        <TouchableOpacity onPress={() => router.push('/notifications/notifications')}>
+                            <Text className="text-gray-300 text-sm">
+                                See All
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
 
-        {/* Floating Map Button */}
-            <TouchableOpacity
- className="absolute bottom-6 right-6 bg-blue-500 rounded-full p-4 shadow-lg"
-                onPress={() => router.push('/map-navigation/' as any)}
-            >
-                <Ionicons name="map" size={28} color="white" />
-            </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
-  )
+                    {/* Notifications */}
+                    <View className="space-y-3 gap-4">
+                        <TouchableOpacity className="bg-white rounded-xl p-3 flex-row items-center">
+                            <View className="bg-blue-100 rounded-full p-2 mr-3">
+                                <Ionicons name="water" size={20} color="#3B82F6" />
+                            </View>
+                            <View className="flex-1">
+                                <Text className="font-semibold text-gray-800 text-lg">Flood</Text>
+                                <Text className="text-gray-600 text-md">Location : Kalutara</Text>
+                            </View>
+
+                            <Text className="text-gray-500 text-md">5 min ago</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity className="bg-white rounded-xl p-3 flex-row items-center">
+                            <View className="bg-red-100 rounded-full p-2 mr-3">
+                                <Ionicons name="thunderstorm" size={20} color="#EF4444" />
+                            </View>
+                            <View className="flex-1">
+                                <Text className="font-semibold text-gray-800 text-lg">Tropical Cyclone</Text>
+                                <Text className="text-gray-600 text-md">Location : Gampaha</Text>
+                            </View>
+
+                            <Text className="text-gray-500 text-md">24 min ago</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Risk Assessment Quiz */}
+                <TouchableOpacity
+                    className="bg-gray-800 mx-4 rounded-2xl p-6 mb-4"
+                    onPress={() => router.push('/')}
+                >
+                    <Text className="text-white text-xl font-bold text-center">
+                        Risk Assessment Quiz
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Disaster Categories Grid */}
+                <View className="px-4 mb-4">
+                    <View className="flex-row space-x-4 mb-4 gap-4">
+                        <TouchableOpacity
+                            className="bg-gray-800 rounded-2xl p-6 flex-1 items-center justify-center h-24"
+                            onPress={() => router.push('/disaster-screen/flood')}
+                        >
+                            <Text className="text-white text-lg font-bold">
+                                Floods
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            className="bg-gray-800 rounded-2xl p-6 flex-1 items-center justify-center h-24"
+                            onPress={() => router.push('/disaster-screen/earthquake')}
+                        >
+                            <Text className="text-white text-lg font-bold">
+                                Earthquake
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View className="flex-row space-x-4 gap-4">
+                        <TouchableOpacity
+                            className="bg-gray-800 rounded-2xl p-6 flex-1 items-center justify-center h-24"
+                            onPress={() => router.push('/disaster-screen/landSlide')}
+                        >
+                            <Text className="text-white text-lg font-bold">
+                                Landslides
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            className="bg-gray-800 rounded-2xl p-6 flex-1 items-center justify-center h-24"
+                            onPress={() => router.push('/disaster-screen/storm')}
+                        >
+                            <Text className="text-white text-lg font-bold">
+                                Storms
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Donate & Help */}
+                <TouchableOpacity
+                    className="bg-gray-800 mx-4 rounded-2xl p-6 mb-8"
+                    onPress={() => router.push('/')}
+                >
+                    <Text className="text-white text-xl font-bold text-center">
+                        Donate & Help
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Floating Map Button */}
+                <TouchableOpacity
+                    className="absolute bottom-8 right-6 bg-blue-500 rounded-full p-4 shadow-lg"
+                    onPress={() => router.push('/map-navigation/' as any)}
+                >
+                    <Ionicons name="map" size={45} color="white" />
+                </TouchableOpacity>
+
+            </ScrollView>
+        </SafeAreaView>
+    );
 }
