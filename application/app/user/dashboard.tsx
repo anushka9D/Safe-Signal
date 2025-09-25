@@ -261,7 +261,7 @@ export default function UserDashboard() {
                 {/* Donate & Help */}
                 <TouchableOpacity
                     className="bg-gray-800 mx-4 rounded-2xl p-6 mb-8"
-                    onPress={() => router.push('/')}
+                    onPress={() => router.push('/donation/dashboard')}
                 >
                     <Text className="text-white text-xl font-bold text-center">
                         Donate & Help
@@ -272,10 +272,10 @@ export default function UserDashboard() {
 
             {/* Floating Map Button */}
             <TouchableOpacity
-                className="absolute bottom-6 right-6 bg-blue-500 rounded-full p-4 shadow-lg"
-                onPress={() => router.push('/map-navigation/' as any)}
+                className="absolute bottom-20 right-8 bg-blue-500 rounded-full p-4 shadow-lg"
+                onPress={() => router.push('/map-navigation/' as any)} 
             >
-                <Ionicons name="map" size={28} color="white" />
+                <Ionicons name="map" size={40} color="white" />
             </TouchableOpacity>
         </SafeAreaView>
     );

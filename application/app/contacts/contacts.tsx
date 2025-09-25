@@ -19,7 +19,7 @@ export default function Contacts() {
                         <Ionicons name="arrow-back" size={24} color="#4B5563" />
                     </TouchableOpacity>
                     <Text className="text-2xl font-bold text-gray-800">
-                        Emergency Contacts - Earthquakes
+                        Emergency Contacts
                     </Text>
                     <View className="w-10" />
                 </View>
