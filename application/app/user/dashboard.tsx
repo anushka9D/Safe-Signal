@@ -49,7 +49,7 @@ export default function Dashboard() {
 
             <TouchableOpacity
               className="bg-gray-800 rounded-xl py-5 px-6 shadow-lg m-1 w-[45%] h-[20%] justify-center"
-              onPress={() => router.push('/disaster-screen/flood')}
+              onPress={() => router.push('/dashboards/userDashboard')}
             >
               <Text className="text-white text-lg font-semibold text-center">
                 Flood
