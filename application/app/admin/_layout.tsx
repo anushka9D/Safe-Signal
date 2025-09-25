@@ -33,8 +33,8 @@ function CustomDrawerContent(props: any) {
     if (!uid) return;
     try {
       setBusy(true);
-      await setLocked(uid);           
-      router.replace('/auth/login');  
+      await setLocked(uid);
+      router.replace('/auth/login');
     } catch (e: any) {
       Alert.alert('Lock failed', String(e?.message ?? e));
     } finally {
@@ -46,7 +46,7 @@ function CustomDrawerContent(props: any) {
     const uid = auth.currentUser?.uid;
     try {
       setBusy(true);
-      if (uid) await clearLocked(uid); 
+      if (uid) await clearLocked(uid);
       await signOut(auth);
       router.replace('/');
     } catch (e: any) {
@@ -61,16 +61,16 @@ function CustomDrawerContent(props: any) {
       {...props}
       contentContainerStyle={{ flex: 1, backgroundColor: '#0b1220' }}
     >
-    
+
       <View style={{ padding: 16 }}>
         <Text style={{ color: '#94a3b8', marginBottom: 4 }}>Logged in as</Text>
         <Text style={{ color: 'white', fontWeight: '700' }}>{email}</Text>
       </View>
 
-     
+
       <DrawerItemList {...props} />
 
-     
+
       <View
         style={{
           marginTop: 'auto',
@@ -144,6 +144,7 @@ export default function AdminLayout() {
       <Drawer.Screen name="notifications" options={{ title: 'Notifications' }} />
       <Drawer.Screen name="donations" options={{ title: 'Donations' }} />
       <Drawer.Screen name="content" options={{ title: 'Content management' }} />
+      <Drawer.Screen name="safelocations" options={{ title: 'Add Safe Locations' }} />
     </Drawer>
   );
 }
