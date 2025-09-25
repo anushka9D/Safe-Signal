@@ -5,33 +5,37 @@ import { useEffect, useState } from 'react'
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../config/firebase-config';
+import * as Location from 'expo-location';
 
 export default function UserDashboard() {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
-    const [userName, setUserName] = useState('---');
+    const [userName, setUserName] = useState('User');
+    const [userLocation, setUserLocation] = useState<string>('Getting location...');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             setUser(currentUser);
-
+            
             if (currentUser) {
                 try {
                     const userDocRef = doc(db, 'users', currentUser.uid);
                     const userDoc = await getDoc(userDocRef);
-
+                    
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
-                        const name = userData.name || currentUser.displayName;
+                        // Use name from Firestore
+                        const name = userData.name || currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
                         setUserName(name);
                     } else {
-                        const name = currentUser.displayName || 'User';
+                        // Fallback to auth user data
+                        const name = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
                         setUserName(name);
                     }
                 } catch (error) {
                     console.error('Error fetching user data:', error);
-                    const name = currentUser.displayName || 'User';
+                    const name = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
                     setUserName(name);
                 }
             } else {
@@ -40,8 +44,44 @@ export default function UserDashboard() {
             setLoading(false);
         });
 
+        getCurrentLocation();
+
         return unsubscribe;
     }, []);
+
+    const getCurrentLocation = async () => {
+        try {
+            // Request permission
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                setUserLocation('Location access denied');
+                return;
+            }
+
+            // Get current location
+            let location = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Balanced
+            });
+
+            // Reverse geocode to get address
+            let reverseGeocode = await Location.reverseGeocodeAsync({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude
+            });
+
+            if (reverseGeocode.length > 0) {
+                const address = reverseGeocode[0];
+                // Format the location string
+                const locationString = `${address.city || address.subregion || 'Unknown City'}${address.region ? '\n' + address.region : ''}`;
+                setUserLocation(locationString);
+            } else {
+                setUserLocation('Location unavailable');
+            }
+        } catch (error) {
+            console.error('Error getting location:', error);
+            setUserLocation('Unable to get location');
+        }
+    };
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
@@ -65,7 +105,7 @@ export default function UserDashboard() {
                         <View className="flex-row space-x-5 gap-3">
                             <TouchableOpacity
                                 className="bg-gray-100 rounded-full p-2"
-                                onPress={() => router.push('/')}
+                                onPress={() => router.push('/user/profile')}
                             >
                                 <Ionicons name="person" size={35} color="#4B5563" />
                             </TouchableOpacity>
@@ -90,7 +130,7 @@ export default function UserDashboard() {
                         {/* Badges */}
                         <TouchableOpacity
                             className="bg-gray-800 rounded-2xl p-4 flex-1"
-                            onPress={() => router.push('/')}
+                            onPress={() => router.push('/badges/badges')}
                         >
                             <Text className="text-white font-semibold text-base mb-3 text-center">
                                 Your Badges
@@ -111,13 +151,13 @@ export default function UserDashboard() {
                         {/* Saved Location */}
                         <TouchableOpacity
                             className="bg-gray-800 rounded-2xl p-4 flex-1"
-                            onPress={() => router.push('/')}
+                            onPress={getCurrentLocation}
                         >
                             <Text className="text-white font-semibold text-base mb-2 text-center">
                                 Saved Location
                             </Text>
                             <Text className="text-white text-lg font-bold text-center">
-                                Asgiriya{'\n'}Gampaha
+                                {userLocation}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -168,7 +208,7 @@ export default function UserDashboard() {
                 {/* Risk Assessment Quiz */}
                 <TouchableOpacity
                     className="bg-gray-800 mx-4 rounded-2xl p-6 mb-4"
-                    onPress={() => router.push('/')}
+                    onPress={() => router.push('/quiz/riskAssessment')}
                 >
                     <Text className="text-white text-xl font-bold text-center">
                         Risk Assessment Quiz
@@ -228,15 +268,15 @@ export default function UserDashboard() {
                     </Text>
                 </TouchableOpacity>
 
-                {/* Floating Map Button */}
-                <TouchableOpacity
-                    className="absolute bottom-8 right-6 bg-blue-500 rounded-full p-4 shadow-lg"
-                    onPress={() => router.push('/map-navigation/' as any)}
-                >
-                    <Ionicons name="map" size={45} color="white" />
-                </TouchableOpacity>
-
             </ScrollView>
+
+            {/* Floating Map Button */}
+            <TouchableOpacity
+                className="absolute bottom-6 right-6 bg-blue-500 rounded-full p-4 shadow-lg"
+                onPress={() => router.push('/map-navigation/' as any)}
+            >
+                <Ionicons name="map" size={28} color="white" />
+            </TouchableOpacity>
         </SafeAreaView>
     );
 }
