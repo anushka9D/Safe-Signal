@@ -7,7 +7,7 @@ export interface FamilyMember {
   phoneNumber: string;
   relationship: string;
   email: string;
-  status: 'safe' | 'in_danger';
+  status: 'safe' | 'emergency';
   location?: {
     latitude: number;
     longitude: number;

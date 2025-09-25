@@ -263,15 +263,15 @@ export default function FamilyAdd() {
 
       <ScrollView className="flex-1 px-4 py-4 pb-20">
         {/* Emergency Alert Section - Only show if there are members in danger */}
-        {familyMembers.filter(m => m.status === 'in_danger').length > 0 && (
+        {familyMembers.filter(m => m.status === 'emergency').length > 0 && (
           <View className="bg-red-500 rounded-xl p-4 mb-4 border border-red-400">
             <View className="flex-row items-center mb-2">
               <Ionicons name="warning" size={20} color="white" />
               <Text className="text-white font-bold ml-2">
-                {familyMembers.filter(m => m.status === 'in_danger').length} family member(s) need help
+                {familyMembers.filter(m => m.status === 'emergency').length} family member(s) need help
               </Text>
             </View>
-            {familyMembers.filter(m => m.status === 'in_danger').map((member) => (
+            {familyMembers.filter(m => m.status === 'emergency').map((member) => (
               <Text key={member.id} className="text-white text-sm mb-2">
                 {member.name} is in danger
               </Text>
@@ -295,7 +295,7 @@ export default function FamilyAdd() {
             <Ionicons name="warning" size={32} color="#EF4444" />
             <Text className="text-white font-bold mt-2">In Danger</Text>
             <Text className="text-gray-300 text-sm">
-              {familyMembers.filter(m => m.status === 'in_danger').length}
+              {familyMembers.filter(m => m.status === 'emergency').length}
             </Text>
           </View>
         </View>
