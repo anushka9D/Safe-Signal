@@ -24,7 +24,7 @@ export default function FooterNavigation({ activeTab = 'map' }: FooterNavigation
         router.push('/articles/article' as any);
         break;
       case 'status':
-        router.push('/notifications/notifications' as any);
+        router.push('/map-navigation/statusadd' as any);
         break;
       default:
         break;

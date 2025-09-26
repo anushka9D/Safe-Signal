@@ -53,7 +53,7 @@ export default function EmbeddedMap({
       case 'shelter': return 'green';
       case 'emergency_center': return 'purple';
       case 'family_safe': return '#10B981'; // Green for safe family members
-      case 'family_danger': return '#EF4444'; // Red for family members in danger
+      case 'family_emergency': return '#EF4444'; // Red for family members in emergency
       default: return 'gray';
     }
   };
@@ -171,11 +171,11 @@ export default function EmbeddedMap({
 
         // Add family member markers
         ${familyMembers.filter(member => member.location).map((member, index) => {
-          const color = getMarkerColor(member.status === 'safe' ? 'family_safe' : 'family_danger');
+          const color = getMarkerColor(member.status === 'safe' ? 'family_safe' : 'family_emergency');
           const memberName = member.name.replace(/"/g, '\\"');
           const memberRelationship = member.relationship.replace(/"/g, '\\"');
-          const statusText = member.status === 'safe' ? 'Safe' : 'In Danger';
-          const statusEmoji = member.status === 'safe' ? '✅' : '⚠️';
+          const statusText = member.status === 'safe' ? 'Safe' : 'Emergency';
+          const statusEmoji = member.status === 'safe' ? '✅' : '🆘';
           
           return `
         var familyMarker${index} = L.marker([${member.location!.latitude}, ${member.location!.longitude}])
