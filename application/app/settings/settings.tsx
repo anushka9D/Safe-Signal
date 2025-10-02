@@ -131,19 +131,15 @@ export default function Settings() {
             <ScrollView contentContainerClassName="p-5 gap-5">
 
                 {/* Header */}
-                <View className="bg-white shadow-sm px-6 py-4 pt-12">
-                    <View className="flex-row items-center justify-between">
-                        <TouchableOpacity
-                            className="bg-gray-100 rounded-full p-2 mt-8"
-                            onPress={() => router.back()}
-                        >
-                            <Ionicons name="arrow-back" size={24} color="#4B5563" />
-                        </TouchableOpacity>
-                        <Text className="text-2xl font-bold text-gray-800">
-                            Settings
-                        </Text>
-                        <View className="w-10" />
-                    </View>
+                <View className="flex-row items-center justify-between mb-6 mt-4">
+                    <TouchableOpacity
+                        className="bg-gray-800 rounded-full p-2"
+                        onPress={() => router.back()}
+                    >
+                        <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <Text className="text-2xl font-bold text-white">Settings</Text>
+                    <View className="w-10" />
                 </View>
 
                 <Text className="text-slate-400 mx-4">{user?.email ?? '—'}</Text>
@@ -272,10 +268,10 @@ export default function Settings() {
                     onPress={() => router.push('/quiz/onboarding')}
                 >
                     <View className="flex-row items-center justify-center">
-                        <Ionicons 
-                            name={quizResults?.quizCompleted ? "refresh" : "play-circle"} 
-                            size={24} 
-                            color="white" 
+                        <Ionicons
+                            name={quizResults?.quizCompleted ? "refresh" : "play-circle"}
+                            size={24}
+                            color="white"
                         />
                         <Text className="text-white text-xl font-bold text-center ml-2">
                             {quizResults?.quizCompleted ? 'Retake Onboarding Quiz' : 'Take Onboarding Quiz'}
