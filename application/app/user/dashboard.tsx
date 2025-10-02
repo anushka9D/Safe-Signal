@@ -1,11 +1,11 @@
-import { Text, View, TouchableOpacity, SafeAreaView, StatusBar, ScrollView } from "react-native";
-import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react'
+import * as Location from 'expo-location';
+import { useRouter } from "expo-router";
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { SafeAreaView, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { auth, db } from '../../config/firebase-config';
-import * as Location from 'expo-location';
 
 export default function UserDashboard() {
     const router = useRouter();
@@ -208,7 +208,7 @@ export default function UserDashboard() {
                 {/* Risk Assessment Quiz */}
                 <TouchableOpacity
                     className="bg-gray-800 mx-4 rounded-2xl p-6 mb-4"
-                    onPress={() => router.push('/quiz/riskAssessment')}
+                    onPress={() => router.push('/quiz/riskAssessmentSummary')}
                 >
                     <Text className="text-white text-xl font-bold text-center">
                         Risk Assessment Quiz
