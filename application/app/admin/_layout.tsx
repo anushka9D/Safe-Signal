@@ -145,6 +145,8 @@ export default function AdminLayout() {
       <Drawer.Screen name="donations" options={{ title: 'Donations' }} />
       <Drawer.Screen name="content" options={{ title: 'Content management' }} />
       <Drawer.Screen name="quizmanagement" options={{ title: 'User Onboard Quiz' }} />
+      <Drawer.Screen name="riskQuestionsManagement" options={{ title: 'Risk Assessment Questions' }} />
+      <Drawer.Screen name="riskSuggestionsManagement" options={{ title: 'Risk Assessment Suggestions' }} />
       <Drawer.Screen name="safelocations" options={{ title: 'Add Safe Locations' }} />
     </Drawer>
   );
