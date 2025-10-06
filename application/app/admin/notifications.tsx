@@ -2,6 +2,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, View, TouchableOpacity, ScrollView, Modal, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
+import { router } from 'expo-router';
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([
@@ -39,14 +40,8 @@ export default function Notifications() {
     }
   ]);
 
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
-  const [newNotification, setNewNotification] = useState({
-    title: '',
-    message: '',
-    type: 'general',
-    priority: 'medium'
-  });
+
   const [selectedFilter, setSelectedFilter] = useState('all');
 
   // Filter notifications based on selected filter
@@ -104,24 +99,9 @@ export default function Notifications() {
     }
   };
 
-  // Add new notification
-  const handleAddNotification = () => {
-    if (!newNotification.title.trim() || !newNotification.message.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
-
-    const notification = {
-      id: Date.now(),
-      ...newNotification,
-      timestamp: new Date()
-    };
-
-    setNotifications(prev => [notification, ...prev]);
-    setNewNotification({ title: '', message: '', type: 'general', priority: 'medium' });
-    setShowAddModal(false);
-    Alert.alert('Success', 'Notification added successfully!');
-  };
+  const handleNotification = ()=>{
+    router.replace('/admin/addNotification');
+  }
 
   // Send emergency alert
   const handleEmergencyAlert = () => {
@@ -185,7 +165,7 @@ export default function Notifications() {
         <View className="flex-row space-x-3 mb-4">
           <TouchableOpacity
             className="flex-1 bg-[#3b82f6] p-4 rounded-lg flex-row items-center justify-center"
-            onPress={() => setShowAddModal(true)}
+            onPress={handleNotification}
           >
             <Ionicons name="add-circle" size={20} color="white" />
             <Text className="text-white font-semibold ml-2">Add Notification</Text>
@@ -290,101 +270,6 @@ export default function Notifications() {
           ))
         )}
       </ScrollView>
-
-      {/* Add Notification Modal */}
-      <Modal
-        visible={showAddModal}
-        animationType="slide"
-        transparent={true}
-      >
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-[#1e293b] rounded-t-3xl p-6">
-            <View className="flex-row items-center justify-between mb-6">
-              <Text className="text-white text-xl font-bold">Add Notification</Text>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <Ionicons name="close" size={24} color="#9ca3af" />
-              </TouchableOpacity>
-            </View>
-
-            <View className="space-y-4">
-              <View>
-                <Text className="text-gray-300 mb-2">Title</Text>
-                <TextInput
-                  className="bg-[#374151] text-white p-3 rounded-lg"
-                  value={newNotification.title}
-                  onChangeText={(text) => setNewNotification(prev => ({ ...prev, title: text }))}
-                  placeholder="Enter notification title"
-                  placeholderTextColor="#9ca3af"
-                />
-              </View>
-
-              <View>
-                <Text className="text-gray-300 mb-2">Message</Text>
-                <TextInput
-                  className="bg-[#374151] text-white p-3 rounded-lg"
-                  value={newNotification.message}
-                  onChangeText={(text) => setNewNotification(prev => ({ ...prev, message: text }))}
-                  placeholder="Enter notification message"
-                  placeholderTextColor="#9ca3af"
-                  multiline
-                  numberOfLines={3}
-                />
-              </View>
-
-              <View className="flex-row space-x-4">
-                <View className="flex-1">
-                  <Text className="text-gray-300 mb-2">Type</Text>
-                  <View className="flex-row space-x-2">
-                    {['general', 'emergency', 'weather', 'system'].map((type) => (
-                      <TouchableOpacity
-                        key={type}
-                        className={`px-3 py-2 rounded-lg ${
-                          newNotification.type === type ? 'bg-[#3b82f6]' : 'bg-[#374151]'
-                        }`}
-                        onPress={() => setNewNotification(prev => ({ ...prev, type }))}
-                      >
-                        <Text className={`text-sm ${
-                          newNotification.type === type ? 'text-white' : 'text-gray-300'
-                        }`}>
-                          {type}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              </View>
-
-              <View>
-                <Text className="text-gray-300 mb-2">Priority</Text>
-                <View className="flex-row space-x-2">
-                  {['low', 'medium', 'high'].map((priority) => (
-                    <TouchableOpacity
-                      key={priority}
-                      className={`px-4 py-2 rounded-lg ${
-                        newNotification.priority === priority ? 'bg-[#3b82f6]' : 'bg-[#374151]'
-                      }`}
-                      onPress={() => setNewNotification(prev => ({ ...prev, priority }))}
-                    >
-                      <Text className={`text-sm ${
-                        newNotification.priority === priority ? 'text-white' : 'text-gray-300'
-                      }`}>
-                        {priority}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              className="bg-[#3b82f6] p-4 rounded-lg mt-6"
-              onPress={handleAddNotification}
-            >
-              <Text className="text-white font-semibold text-center">Add Notification</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
       {/* Stats Modal */}
       <Modal
