@@ -1,54 +1,62 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text, View, TouchableOpacity, ScrollView, Modal, TextInput, Alert } from 'react-native';
+import { Text, View, TouchableOpacity, ScrollView, Modal, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
+import { db } from '../../config/firebase-config';
+import { collection, query, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
+
+type NotificationType = 'alert' | 'warning';
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  timestamp: Date;
+  createdAt: Timestamp;
+}
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "🌊 Flood Warning",
-      message: "River levels rising rapidly in Zone 4. Immediate evacuation recommended.",
-      type: "emergency",
-      timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-      priority: "high"
-    },
-    {
-      id: 2,
-      title: "🌍 Earthquake Alert",
-      message: "6.2 magnitude earthquake detected 12km from your location.",
-      type: "emergency",
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      priority: "high"
-    },
-    {
-      id: 3,
-      title: "🌤️ Weather Update",
-      message: "Sunny weather expected tomorrow with temperatures reaching 28°C.",
-      type: "weather",
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-      priority: "low"
-    },
-    {
-      id: 4,
-      title: "📱 System Maintenance",
-      message: "Scheduled maintenance will occur tonight from 2AM to 4AM.",
-      type: "system",
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-      priority: "medium"
-    }
-  ]);
-
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showStatsModal, setShowStatsModal] = useState(false);
-
   const [selectedFilter, setSelectedFilter] = useState('all');
+
+  // Fetch notifications from Firebase
+  useEffect(() => {
+    const q = query(
+      collection(db, 'notifications'),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const notificationsData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title,
+          message: data.message,
+          type: data.type,
+          timestamp: data.createdAt?.toDate() || new Date(),
+          createdAt: data.createdAt
+        } as Notification;
+      });
+      setNotifications(notificationsData);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching notifications:', error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Filter notifications based on selected filter
   const filteredNotifications = notifications.filter(notification => {
     if (selectedFilter === 'all') return true;
-    if (selectedFilter === 'notifications') return notification.type !== 'emergency';
-    if (selectedFilter === 'alerts') return notification.type === 'emergency';
+    if (selectedFilter === 'alerts') return notification.type === 'alert';
+    if (selectedFilter === 'warnings') return notification.type === 'warning';
     return true;
   });
 
@@ -61,14 +69,18 @@ export default function Notifications() {
     }).length,
     todayAlerts: notifications.filter(n => {
       const today = new Date();
-      return n.timestamp.toDateString() === today.toDateString() && n.type === 'emergency';
+      return n.timestamp.toDateString() === today.toDateString() && n.type === 'alert';
+    }).length,
+    todayWarnings: notifications.filter(n => {
+      const today = new Date();
+      return n.timestamp.toDateString() === today.toDateString() && n.type === 'warning';
     }).length
   };
 
   // Format timestamp
-  const formatTime = (timestamp:number) => {
+  const formatTime = (timestamp: Date) => {
     const now = new Date().getTime();
-    const diff = now - timestamp;
+    const diff = now - timestamp.getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
@@ -79,57 +91,32 @@ export default function Notifications() {
     return 'Just now';
   };
 
-  // Get priority color
-  const getPriorityColor = (priority:String) => {
-    switch (priority) {
-      case 'high': return '#ef4444';
-      case 'medium': return '#f59e0b';
-      case 'low': return '#10b981';
+  // Get type color
+  const getTypeColor = (type: NotificationType) => {
+    switch (type) {
+      case 'alert': return '#eab308'; // yellow
+      case 'warning': return '#ef4444'; // red
       default: return '#6b7280';
     }
   };
 
   // Get type icon
-  const getTypeIcon = (type:String) => {
+  const getTypeIcon = (type: NotificationType) => {
     switch (type) {
-      case 'emergency': return 'warning';
-      case 'weather': return 'partly-sunny';
-      case 'system': return 'settings';
+      case 'alert': return 'warning';
+      case 'warning': return 'alert-circle';
       default: return 'notifications';
     }
   };
 
-  const handleNotification = ()=>{
-    router.replace('/admin/addNotification');
-  }
-
-  // Send emergency alert
-  const handleEmergencyAlert = () => {
-    Alert.alert(
-      'Send Emergency Alert',
-      'This will send an immediate emergency notification to all users. Continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send Alert',
-          style: 'destructive',
-          onPress: () => {
-            const emergencyNotification = {
-              id: Date.now(),
-              title: '🚨 Emergency Alert',
-              message: 'Emergency situation detected. Please follow safety protocols and stay alert.',
-              type: 'emergency',
-              priority: 'high',
-              timestamp: new Date()
-            };
-            setNotifications(prev => [emergencyNotification, ...prev]);
-            Alert.alert('Emergency Alert Sent', 'Emergency notification has been broadcast to all users.');
-          }
-        }
-      ]
-    );
+  const handleAddNotification = () => {
+    router.push('/admin/addNotification');
   };
 
+    // Send emergency alert
+    const handleEmergencyAlert = () => {
+      Alert.alert('Send Emergency Alert','This will send an immediate emergency notification to all users. Continue?');
+    };
 
   return (
     <SafeAreaView className="flex-1 bg-[#0b1220]">
@@ -148,16 +135,20 @@ export default function Notifications() {
         {/* Quick Stats */}
         <View className="flex-row justify-between mb-4">
           <View className="bg-[#1e293b] p-3 rounded-lg flex-1 mr-2">
-            <Text className="text-gray-400 text-xs">Total Notifications</Text>
+            <Text className="text-gray-400 text-xs">Total</Text>
             <Text className="text-white text-lg font-bold">{stats.total}</Text>
           </View>
           <View className="bg-[#1e293b] p-3 rounded-lg flex-1 mx-1">
             <Text className="text-gray-400 text-xs">Today Total</Text>
             <Text className="text-blue-400 text-lg font-bold">{stats.todayTotal}</Text>
           </View>
-          <View className="bg-[#1e293b] p-3 rounded-lg flex-1 ml-2">
+          <View className="bg-[#1e293b] p-3 rounded-lg flex-1 mx-1">
             <Text className="text-gray-400 text-xs">Today Alerts</Text>
-            <Text className="text-red-400 text-lg font-bold">{stats.todayAlerts}</Text>
+            <Text className="text-yellow-400 text-lg font-bold">{stats.todayAlerts}</Text>
+          </View>
+          <View className="bg-[#1e293b] p-3 rounded-lg flex-1 ml-2">
+            <Text className="text-gray-400 text-xs">Today Warnings</Text>
+            <Text className="text-red-400 text-lg font-bold">{stats.todayWarnings}</Text>
           </View>
         </View>
 
@@ -165,14 +156,14 @@ export default function Notifications() {
         <View className="flex-row space-x-3 mb-4">
           <TouchableOpacity
             className="flex-1 bg-[#3b82f6] p-4 rounded-lg flex-row items-center justify-center"
-            onPress={handleNotification}
+            onPress={handleAddNotification}
           >
             <Ionicons name="add-circle" size={20} color="white" />
             <Text className="text-white font-semibold ml-2">Add Notification</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
-            className="flex-1 bg-[#dc2626] p-4 rounded-lg flex-row items-center justify-center"
+            className="flex-1 bg-[#dc2626] p-4 rounded-lg flex-row items-center justify-center ml-3"
             onPress={handleEmergencyAlert}
           >
             <Ionicons name="warning" size={20} color="white" />
@@ -185,8 +176,8 @@ export default function Notifications() {
           <View className="flex-row space-x-2">
             {[
               { key: 'all', label: 'All', count: stats.total },
-              { key: 'notifications', label: 'Notifications', count: notifications.filter(n => n.type !== 'emergency').length },
-              { key: 'alerts', label: 'Alerts', count: notifications.filter(n => n.type === 'emergency').length }
+              { key: 'alerts', label: 'Alerts', count: notifications.filter(n => n.type === 'alert').length },
+              { key: 'warnings', label: 'Warnings', count: notifications.filter(n => n.type === 'warning').length }
             ].map((filter) => (
               <TouchableOpacity
                 key={filter.key}
@@ -208,7 +199,12 @@ export default function Notifications() {
 
       {/* Notifications List */}
       <ScrollView className="flex-1 px-5">
-        {filteredNotifications.length === 0 ? (
+        {loading ? (
+          <View className="flex-1 items-center justify-center py-20">
+            <ActivityIndicator size="large" color="#f97316" />
+            <Text className="text-gray-400 text-lg mt-4">Loading notifications...</Text>
+          </View>
+        ) : filteredNotifications.length === 0 ? (
           <View className="flex-1 items-center justify-center py-20">
             <Ionicons name="notifications-off" size={64} color="#374151" />
             <Text className="text-gray-400 text-lg mt-4">No notifications found</Text>
@@ -218,16 +214,17 @@ export default function Notifications() {
           filteredNotifications.map((notification) => (
             <TouchableOpacity
               key={notification.id}
-              className="bg-[#1e293b] p-4 rounded-lg mb-3  border-l-4 border-[#3b82f6]">
-                
+              className="bg-[#1e293b] p-4 rounded-lg mb-3 border-l-4"
+              style={{ borderLeftColor: getTypeColor(notification.type) }}
+            >
               <View className="flex-row items-start">
                 <View 
                   className="w-3 h-3 rounded-full mr-3 mt-2"
-                  style={{ backgroundColor: getPriorityColor(notification.priority) }}
+                  style={{ backgroundColor: getTypeColor(notification.type) }}
                 />
                 <View className="flex-1">
                   <View className="flex-row items-center justify-between mb-2">
-                    <Text className="font-semibold text-white text-gray-300">
+                    <Text className="font-semibold text-white">
                       {notification.title}
                     </Text>
                     <View className="flex-row items-center">
@@ -237,28 +234,21 @@ export default function Notifications() {
                         color="#9ca3af" 
                       />
                       <Text className="text-gray-400 text-xs ml-2">
-                        {formatTime(notification.timestamp.getTime())}
+                        {formatTime(notification.timestamp)}
                       </Text>
                     </View>
                   </View>
-                  <Text className="text-sm leading-5  text-gray-200 text-gray-400">
+                  <Text className="text-sm leading-5 text-gray-400">
                     {notification.message}
                   </Text>
                   <View className="flex-row items-center justify-between mt-3">
                     <View className="flex-row items-center">
                       <View className={`px-2 py-1 rounded-full ${
-                        notification.priority === 'high' ? 'bg-red-900' :
-                        notification.priority === 'medium' ? 'bg-yellow-900' : 'bg-green-900'
+                        notification.type === 'alert' ? 'bg-yellow-900' : 'bg-red-900'
                       }`}>
                         <Text className={`text-xs font-medium ${
-                          notification.priority === 'high' ? 'text-red-300' :
-                          notification.priority === 'medium' ? 'text-yellow-300' : 'text-green-300'
+                          notification.type === 'alert' ? 'text-yellow-300' : 'text-red-300'
                         }`}>
-                          {notification.priority.toUpperCase()}
-                        </Text>
-                      </View>
-                      <View className="px-2 py-1 rounded-full bg-gray-800 ml-2">
-                        <Text className="text-gray-400 text-xs font-medium">
                           {notification.type.toUpperCase()}
                         </Text>
                       </View>
@@ -287,29 +277,34 @@ export default function Notifications() {
             </View>
 
             <View className="space-y-4">
-              <View className="flex-row justify-between">
+              <View className="flex-row justify-between py-2">
                 <Text className="text-gray-300">Total Notifications</Text>
                 <Text className="text-white font-bold">{stats.total}</Text>
               </View>
-              <View className="flex-row justify-between">
-                <Text className="text-gray-300">Today Total Notifications</Text>
+              <View className="flex-row justify-between py-2">
+                <Text className="text-gray-300">Today Total</Text>
                 <Text className="text-blue-400 font-bold">{stats.todayTotal}</Text>
               </View>
-              <View className="flex-row justify-between">
-                <Text className="text-gray-300">Today Total Alerts</Text>
-                <Text className="text-red-400 font-bold">{stats.todayAlerts}</Text>
+              <View className="h-px bg-gray-600 my-2" />
+              <View className="flex-row justify-between py-2">
+                <Text className="text-gray-300">Today Alerts</Text>
+                <Text className="text-yellow-400 font-bold">{stats.todayAlerts}</Text>
+              </View>
+              <View className="flex-row justify-between py-2">
+                <Text className="text-gray-300">Today Warnings</Text>
+                <Text className="text-red-400 font-bold">{stats.todayWarnings}</Text>
               </View>
               <View className="h-px bg-gray-600 my-2" />
-              <View className="flex-row justify-between">
-                <Text className="text-gray-300">Regular Notifications</Text>
-                <Text className="text-green-400 font-bold">
-                  {notifications.filter(n => n.type !== 'emergency').length}
+              <View className="flex-row justify-between py-2">
+                <Text className="text-gray-300">Total Alerts</Text>
+                <Text className="text-yellow-400 font-bold">
+                  {notifications.filter(n => n.type === 'alert').length}
                 </Text>
               </View>
-              <View className="flex-row justify-between">
-                <Text className="text-gray-300">Emergency Alerts</Text>
-                <Text className="text-orange-400 font-bold">
-                  {notifications.filter(n => n.type === 'emergency').length}
+              <View className="flex-row justify-between py-2">
+                <Text className="text-gray-300">Total Warnings</Text>
+                <Text className="text-red-400 font-bold">
+                  {notifications.filter(n => n.type === 'warning').length}
                 </Text>
               </View>
             </View>
