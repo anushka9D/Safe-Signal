@@ -5,15 +5,18 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface FooterNavigationProps {
-  activeTab?: 'map' | 'family' | 'resources' | 'status';
+  activeTab?: 'home' | 'map' | 'family' | 'resources' | 'status';
 }
 
-export default function FooterNavigation({ activeTab = 'map' }: FooterNavigationProps) {
+export default function FooterNavigation({ activeTab = 'home' }: FooterNavigationProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const navigateToPage = (page: string) => {
     switch (page) {
+      case 'home':
+        router.push('/user/dashboard' as any);
+        break;
       case 'map':
         router.push('/map-navigation' as any);
         break;
@@ -66,6 +69,24 @@ export default function FooterNavigation({ activeTab = 'map' }: FooterNavigation
   return (
     <View style={footerStyle}>
       <View className="flex-row justify-around items-center py-3">
+        {/* Home */}
+        <TouchableOpacity
+          className="flex-1 items-center py-2"
+          onPress={() => navigateToPage('home')}
+        >
+          <Ionicons 
+            name="home" 
+            size={24} 
+            color={getIconColor('home')} 
+          />
+          <Text 
+            className="text-xs mt-1"
+            style={{ color: activeTab === 'home' ? '#007AFF' : '#9CA3AF' }}
+          >
+            Home
+          </Text>
+        </TouchableOpacity>
+
         {/* Map */}
         <TouchableOpacity
           className="flex-1 items-center py-2"
@@ -108,7 +129,7 @@ export default function FooterNavigation({ activeTab = 'map' }: FooterNavigation
           onPress={() => navigateToPage('resources')}
         >
           <Ionicons 
-            name="home" 
+            name="book" 
             size={24} 
             color={getIconColor('resources')} 
           />
