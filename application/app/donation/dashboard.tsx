@@ -112,7 +112,7 @@ export default function DonationDashboard() {
                     {/* Donate Button */}
                     <TouchableOpacity
                         className="bg-red-500 rounded-2xl p-5 mb-4 shadow-md flex-row items-center"
-                        onPress={() => router.push('/user/dashboard')}
+                        onPress={() => router.push('/donation/donate')}
                         activeOpacity={0.8}
                     >
                         <View className="bg-red-600 rounded-full p-3 mr-4">
