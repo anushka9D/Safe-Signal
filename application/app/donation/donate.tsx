@@ -1,49 +1,77 @@
 import { Text, View, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '../../config/firebase-config';
+import React, { useState, useEffect } from 'react';
+import { Alert, ActivityIndicator } from 'react-native';
 
 export default function Donate() {
     const router = useRouter();
 
-    // Mock data
-    const donationRequests = [
-        {
-            id: 1,
-            title: "Flood Relief - Northern Region",
-            description: "Urgent support needed for 500+ families displaced by severe flooding. Funds will provide shelter, food, and clean water.",
-            targetAmount: 50000,
-            raisedAmount: 32000,
-            requester: "Disaster Relief Foundation",
-            date: "2 days ago"
-        },
-        {
-            id: 2,
-            title: "Earthquake Victims Support",
-            description: "Help rebuild homes and lives after devastating earthquake. Medical supplies and temporary housing urgently needed.",
-            targetAmount: 75000,
-            raisedAmount: 45000,
-            requester: "Emergency Response Team",
-            date: "5 days ago"
-        },
-        {
-            id: 3,
-            title: "Fire Affected Families",
-            description: "Community devastated by wildfire. Families lost everything and need immediate assistance for basic necessities.",
-            targetAmount: 30000,
-            raisedAmount: 18000,
-            requester: "Community Support Group",
-            date: "1 week ago"
-        },
-        {
-            id: 4,
-            title: "Cyclone Emergency Response",
-            description: "Coastal communities facing crisis after cyclone. Support needed for food, medicine, and reconstruction efforts.",
-            targetAmount: 60000,
-            raisedAmount: 25000,
-            requester: "Humanitarian Aid Network",
-            date: "3 days ago"
+    const [donationRequests, setDonationRequests] = useState<DonationRequest[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    interface DonationRequest {
+        id: string;
+        title: string;
+        description: string;
+        amount: number;
+        raisedAmount: number;
+        createdAt: any;
+        requester?: string;
+        [key: string]: any;
+    }
+
+
+    useEffect(() => {
+        fetchDonationRequests();
+    }, []);
+
+    const fetchDonationRequests = async () => {
+        try {
+            setLoading(true);
+            const q = query(
+                collection(db, 'donation_request'),
+                where('status', '==', 'approved'), // Only show approved requests
+                orderBy('createdAt', 'desc')
+            );
+            
+            const querySnapshot = await getDocs(q);
+            const requests = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                title: doc.data().title || '',
+                description: doc.data().description || '',
+                amount: doc.data().amount || 0,
+                raisedAmount: doc.data().raisedAmount || 0,
+                createdAt: doc.data().createdAt,
+                requester: doc.data().requester,
+                ...doc.data()
+            })) as DonationRequest[];
+            
+            setDonationRequests(requests);
+        } catch (error) {
+            console.error('Error fetching donations:', error);
+            Alert.alert('Error', 'Failed to load donation requests');
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    const getTimeAgo = (timestamp: any) => {
+        if (!timestamp) return 'Recently';
+        
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const diffInMs = now.getTime() - date.getTime();
+        const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+        
+        if (diffInDays === 0) return 'Today';
+        if (diffInDays === 1) return '1 day ago';
+        if (diffInDays < 7) return `${diffInDays} days ago`;
+        if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+        return `${Math.floor(diffInDays / 30)} months ago`;
+    };
 
     const getProgressPercentage = (raised: number, target: number) => {
         return Math.min((raised / target) * 100, 100);
@@ -127,8 +155,22 @@ export default function Donate() {
                 {/* Donation Requests List */}
                 <View className="px-6 pb-6">
                     <Text className="text-lg font-bold text-gray-800 mb-4">Active Relief Campaigns</Text>
+
+                    {loading ? (
+                        <View className="flex-1 items-center justify-center py-20">
+                            <ActivityIndicator size="large" color="#EF4444" />
+                            <Text className="text-gray-500 mt-4">Loading donations...</Text>
+                        </View>
+                    ) : donationRequests.length === 0 ? (
+                        <View className="bg-white rounded-2xl p-8 items-center">
+                            <Ionicons name="folder-open-outline" size={64} color="#D1D5DB" />
+                            <Text className="text-gray-500 mt-4 text-center">
+                                No active donation campaigns at the moment
+                            </Text>
+                        </View>
+                    ) : (
                     
-                    {donationRequests.map((request, index) => (
+                    donationRequests.map((request) => (
                         <View
                             key={request.id}
                             className="bg-white rounded-2xl shadow-md p-5 mb-4 border border-gray-100"
@@ -143,7 +185,7 @@ export default function Donate() {
                                         {request.title}
                                     </Text>
                                     <Text className="text-gray-500 text-xs">
-                                        by {request.requester} • {request.date}
+                                        by {request.requester || 'Anonymous'} • {getTimeAgo(request.createdAt)}
                                     </Text>
                                 </View>
                             </View>
@@ -160,17 +202,17 @@ export default function Donate() {
                                         Raised: {formatAmount(request.raisedAmount)}
                                     </Text>
                                     <Text className="text-gray-500 text-sm">
-                                        Goal: {formatAmount(request.targetAmount)}
+                                        Goal: {formatAmount(request.amount)}
                                     </Text>
                                 </View>
                                 <View className="bg-gray-200 rounded-full h-2 overflow-hidden">
                                     <View 
                                         className="bg-green-500 h-full rounded-full"
-                                        style={{ width: `${getProgressPercentage(request.raisedAmount, request.targetAmount)}%` }}
+                                        style={{ width: `${getProgressPercentage(request.raisedAmount, request.amount)}%` }}
                                     />
                                 </View>
                                 <Text className="text-gray-500 text-xs mt-1 text-right">
-                                    {getProgressPercentage(request.raisedAmount, request.targetAmount).toFixed(0)}% funded
+                                    {getProgressPercentage(request.raisedAmount, request.amount).toFixed(0)}% funded
                                 </Text>
                             </View>
 
@@ -189,7 +231,7 @@ export default function Donate() {
                                 </Text>
                             </TouchableOpacity>
                         </View>
-                    ))}
+                    )))}
                 </View>
 
                 {/* Bottom Padding */}
