@@ -35,18 +35,18 @@ export default function DonationRequest() {
             if (!result.canceled) {
                 setImage(result.assets[0].uri);
             }
-        } catch (error) {
+        } catch (error: any) {
             Alert.alert('Error', 'Failed to pick image: ' + error.message);
         }
     };
 
-    const uploadImage = async (uri)=> {
+    const uploadImage = async (uri: string)=> {
         const formData = new FormData();
         formData.append('file', {
             uri,
             type: 'image/jpeg',
             name: 'donation_image.jpg',
-        });
+        }as any);
         formData.append('upload_preset', 'safesignal');
         formData.append('cloud_name', 'dvf4qybuh');
 
@@ -147,7 +147,7 @@ export default function DonationRequest() {
                 ]
             );
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error submitting request:', error);
             Alert.alert('Error', 'Failed to submit request: ' + error.message);
         } finally {
@@ -292,7 +292,7 @@ export default function DonationRequest() {
                                     />
                                     <TouchableOpacity
                                         className="absolute top-2 right-2 bg-red-500 rounded-full p-2"
-                                        onPress={() => setImage(null)}
+                                        onPress={() => setImage}
                                         disabled={loading}
                                     >
                                         <Ionicons name="close" size={20} color="white" />

@@ -221,7 +221,10 @@ export default function Donate() {
                                 className="bg-green-600 rounded-xl py-4 flex-row items-center justify-center"
                                 onPress={() => {
                                     // Navigate to donation payment page with request details
-                                    // router.push(`/donate-payment?id=${request.id}`);
+                                    //router.push({
+                                        //pathname: "/donation/donationPayment",
+                                        //query: { id: request.id },
+                                        //});
                                 }}
                                 activeOpacity={0.8}
                             >
