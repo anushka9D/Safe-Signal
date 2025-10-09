@@ -21,10 +21,70 @@ export interface NavigationState {
   remainingDistance: number;
   estimatedTimeArrival: number;
   nextInstruction: string;
+  heading: number | null; // Add heading property
 }
 
-// Simple route calculation using realistic waypoints
-export const calculateRoute = async (
+// OSRM API endpoint for route calculation
+const OSRM_API_URL = 'https://router.project-osrm.org/route/v1/driving/';
+
+// Function to fetch route from OSRM API
+const fetchOSRMRoute = async (start: RoutePoint, end: RoutePoint): Promise<NavigationRoute> => {
+  try {
+    const coordinates = `${start.longitude},${start.latitude};${end.longitude},${end.latitude}`;
+    const url = `${OSRM_API_URL}${coordinates}?overview=full&geometries=geojson&steps=true`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+      throw new Error('Failed to fetch route from OSRM');
+    }
+    
+    const route = data.routes[0];
+    const steps = data.waypoints || [];
+    
+    // Extract route points from geometry
+    const points: RoutePoint[] = route.geometry.coordinates.map((coord: [number, number]) => ({
+      longitude: coord[0],
+      latitude: coord[1]
+    }));
+    
+    // Extract instructions from steps
+    const instructions: string[] = [];
+    if (data.routes[0].legs && data.routes[0].legs[0].steps) {
+      data.routes[0].legs[0].steps.forEach((step: any) => {
+        if (step.maneuver && step.maneuver.instruction) {
+          instructions.push(step.maneuver.instruction);
+        }
+      });
+    }
+    
+    // If no instructions found, provide default ones
+    if (instructions.length === 0) {
+      instructions.push(
+        'Head towards your destination',
+        'Continue on the main road',
+        'Follow the route to your destination',
+        'Approaching destination',
+        'You have arrived at your destination'
+      );
+    }
+    
+    return {
+      points,
+      distance: route.distance / 1000, // Convert meters to kilometers
+      duration: route.duration / 60, // Convert seconds to minutes
+      instructions
+    };
+  } catch (error) {
+    console.error('Error fetching OSRM route:', error);
+    // Fallback to simulated route if OSRM fails
+    return calculateSimulatedRoute(start, end);
+  }
+};
+
+// Fallback simulated route calculation
+const calculateSimulatedRoute = async (
   start: RoutePoint,
   end: RoutePoint
 ): Promise<NavigationRoute> => {
@@ -83,9 +143,17 @@ export const calculateRoute = async (
       instructions
     };
   } catch (error) {
-    console.error('Error calculating route:', error);
+    console.error('Error calculating simulated route:', error);
     throw error;
   }
+};
+
+// Main route calculation function that uses OSRM with fallback
+export const calculateRoute = async (
+  start: RoutePoint,
+  end: RoutePoint
+): Promise<NavigationRoute> => {
+  return await fetchOSRMRoute(start, end);
 };
 
 // Calculate distance between two coordinates (Haversine formula)
@@ -120,10 +188,12 @@ export class NavigationTracker {
     currentLocation: null,
     remainingDistance: 0,
     estimatedTimeArrival: 0,
-    nextInstruction: ''
+    nextInstruction: '',
+    heading: null // Initialize heading
   };
 
   private locationSubscription: Location.LocationSubscription | null = null;
+  private headingSubscription: Location.LocationSubscription | null = null; // Add heading subscription
   private onUpdateCallback: ((state: NavigationState) => void) | null = null;
 
   async startNavigation(
@@ -147,7 +217,7 @@ export class NavigationTracker {
       longitude: destination.longitude
     };
 
-    // Calculate route
+    // Calculate route using OSRM with fallback to simulated route
     const route = await calculateRoute(start, end);
 
     // Update navigation state
@@ -158,11 +228,15 @@ export class NavigationTracker {
       currentLocation: start,
       remainingDistance: route.distance,
       estimatedTimeArrival: route.duration,
-      nextInstruction: route.instructions[0] || ''
+      nextInstruction: route.instructions[0] || '',
+      heading: null // Initialize heading
     };
 
     // Start location tracking
     this.startLocationTracking();
+    
+    // Start heading tracking
+    this.startHeadingTracking();
 
     // Notify initial state
     this.onUpdateCallback(this.navigationState);
@@ -182,6 +256,20 @@ export class NavigationTracker {
         });
       }
     );
+  }
+
+  private async startHeadingTracking(): Promise<void> {
+    try {
+      // Check if heading is available
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        this.headingSubscription = await Location.watchHeadingAsync((heading) => {
+          this.updateHeading(heading.trueHeading >= 0 ? heading.trueHeading : heading.magHeading);
+        });
+      }
+    } catch (error) {
+      console.warn('Heading tracking not available:', error);
+    }
   }
 
   private updateLocation(newLocation: RoutePoint): void {
@@ -226,12 +314,27 @@ export class NavigationTracker {
     }
   }
 
+  private updateHeading(heading: number): void {
+    // Update heading in navigation state
+    this.navigationState.heading = heading;
+
+    // Notify update
+    if (this.onUpdateCallback) {
+      this.onUpdateCallback(this.navigationState);
+    }
+  }
+
   stopNavigation(): void {
     this.navigationState.isNavigating = false;
     
     if (this.locationSubscription) {
       this.locationSubscription.remove();
       this.locationSubscription = null;
+    }
+    
+    if (this.headingSubscription) {
+      this.headingSubscription.remove();
+      this.headingSubscription = null;
     }
 
     if (this.onUpdateCallback) {
@@ -241,6 +344,22 @@ export class NavigationTracker {
 
   getNavigationState(): NavigationState {
     return { ...this.navigationState };
+  }
+  
+  // Method to start heading tracking without navigation
+  async startHeadingOnly(onUpdate: (state: NavigationState) => void): Promise<void> {
+    this.onUpdateCallback = onUpdate;
+    
+    // Start heading tracking
+    await this.startHeadingTracking();
+  }
+  
+  // Method to stop heading tracking only
+  stopHeadingOnly(): void {
+    if (this.headingSubscription) {
+      this.headingSubscription.remove();
+      this.headingSubscription = null;
+    }
   }
 }
 

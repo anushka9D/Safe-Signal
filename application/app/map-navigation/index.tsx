@@ -37,6 +37,14 @@ export default function MapNavigation() {
   useEffect(() => {
     initializeData();
     loadFamilyMembers(); // Load family members by default
+    
+    // Start heading tracking even when not navigating
+    startHeadingTracking();
+    
+    // Cleanup function to stop heading tracking when component unmounts
+    return () => {
+      navigationTracker.stopHeadingOnly();
+    };
   }, []);
 
   // Load safe locations after user location is obtained
@@ -60,6 +68,27 @@ export default function MapNavigation() {
       Alert.alert('Error', 'Failed to load data. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const startHeadingTracking = async () => {
+    try {
+      // Start heading tracking to update user location arrow even when not navigating
+      await navigationTracker.startHeadingOnly((state) => {
+        // Only update the navigation state if we're actually navigating
+        // Otherwise, just update the heading for the user location arrow
+        if (navigationState?.isNavigating) {
+          setNavigationState(state);
+        } else {
+          // Create a minimal state update just for the heading
+          setNavigationState(prevState => ({
+            ...prevState,
+            heading: state.heading
+          } as NavigationState));
+        }
+      });
+    } catch (error) {
+      console.warn('Could not start heading tracking:', error);
     }
   };
 

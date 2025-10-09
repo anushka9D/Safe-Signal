@@ -48,7 +48,7 @@ export default function SignUp() {
           : null,
       }, { merge: true })
 
-      router.replace('/')
+      router.replace('/quiz/onboarding')
     } catch (e: any) {
       let msg = 'Sign up failed. Please try again.'
       if (e?.code === 'auth/email-already-in-use') msg = 'Email already in use.'

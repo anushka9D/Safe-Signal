@@ -58,18 +58,29 @@ export default function Settings() {
                     </View>
                 </View>
 
-                <Text className="text-slate-400">{user?.email ?? '—'}</Text>
+                <Text className="text-slate-400 mx-4">{user?.email ?? '—'}</Text>
 
 
-                <View className="flex-row gap-3">
-                    <Pressable onPress={handleLock} className="px-4 py-3 rounded-xl bg-white/10 border border-white/15">
-                        <Text className="text-white font-semibold">Lock app</Text>
+                <View className="flex-row gap-3 mx-4">
+                    <Pressable onPress={handleLock} className="flex-1 bg-gray-600 rounded-2xl p-6">
+                        <Text className="text-white text-xl font-bold text-center">Lock app</Text>
                     </Pressable>
 
-                    <Pressable onPress={handleLogout} disabled={busy} className="px-4 py-3 rounded-xl bg-white/10 border border-white/15">
-                        {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Logout</Text>}
+                    <Pressable onPress={handleLogout} disabled={busy} className="flex-1 bg-gray-600 rounded-2xl p-6">
+                        {busy ? <ActivityIndicator color="#fff" /> :
+                            <Text className="text-white text-xl font-bold text-center">Logout</Text>
+                        }
                     </Pressable>
                 </View>
+
+                <TouchableOpacity
+                    className="bg-gray-600 mx-4 rounded-2xl p-6 mb-8"
+                    onPress={() => router.push('/quiz/onboarding')}
+                >
+                    <Text className="text-white text-xl font-bold text-center">
+                        Retake Onboarding Quiz
+                    </Text>
+                </TouchableOpacity>
 
             </ScrollView>
         </SafeAreaView>
