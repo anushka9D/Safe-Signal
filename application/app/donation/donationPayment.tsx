@@ -95,7 +95,6 @@ export default function DonationPayment() {
                 paymentDate: serverTimestamp(),
                 payAmount: amount,
                 requestId: id,
-                userEmail: user.email,
             };
 
             // Add to donations collection

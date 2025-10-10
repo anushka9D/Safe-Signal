@@ -144,7 +144,7 @@ export default function DonationDashboard() {
                     {/* Donation History Button */}
                     <TouchableOpacity
                         className="bg-gray-700 rounded-2xl p-5 shadow-md flex-row items-center"
-                        onPress={() => router.push('/user/dashboard')}
+                        onPress={() => router.push('/donation/donationHistory')}
                         activeOpacity={0.8}
                     >
                         <View className="bg-gray-800 rounded-full p-3 mr-4">
