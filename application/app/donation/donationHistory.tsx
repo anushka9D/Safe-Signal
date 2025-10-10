@@ -1,23 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, ActivityIndicator, Alert } from "react-native";
-import { useRouter } from "expo-router";
+import { Text, View, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, ActivityIndicator, Alert, RefreshControl } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db, auth } from '../../config/firebase-config';
+import { useRouter } from "expo-router";
 
 interface Donation {
     id: string;
     title: string;
-    payAmount: number;
     paymentDate: any;
+    payAmount: number;
     requestId: string;
 }
 
-export default function DonationHistory() {
+
+export default function DonationHistory(){
     const router = useRouter();
     const [donations, setDonations] = useState<Donation[]>([]);
     const [loading, setLoading] = useState(true);
-    const [totalDonated, setTotalDonated] = useState(0);
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         fetchDonationHistory();
@@ -25,17 +26,16 @@ export default function DonationHistory() {
 
     const fetchDonationHistory = async () => {
         const user = auth.currentUser;
-        
         if (!user) {
             Alert.alert('Error', 'You must be logged in to view donation history');
-            router.back();
+            if (router) {
+                router.back();
+            }
             return;
         }
 
         try {
             setLoading(true);
-            
-            // Query donations for current user, ordered by date
             const donationsRef = collection(db, 'donation');
             const q = query(
                 donationsRef,
@@ -45,28 +45,27 @@ export default function DonationHistory() {
             
             const querySnapshot = await getDocs(q);
             const donationsList: Donation[] = [];
-            let total = 0;
-
+            
             querySnapshot.forEach((doc) => {
-                const data = doc.data();
                 donationsList.push({
                     id: doc.id,
-                    title: data.title,
-                    payAmount: data.payAmount,
-                    paymentDate: data.paymentDate,
-                    requestId: data.requestId
-                });
-                total += data.payAmount;
+                    ...doc.data()
+                } as Donation);
             });
-
+            
             setDonations(donationsList);
-            setTotalDonated(total);
-        } catch (error: any) {
-            console.error('Error fetching donations:', error);
+        } catch (error) {
+            console.error('Error fetching donation history:', error);
             Alert.alert('Error', 'Failed to load donation history');
         } finally {
             setLoading(false);
         }
+    };
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await fetchDonationHistory();
+        setRefreshing(false);
     };
 
     const formatAmount = (amount: number) => {
@@ -81,89 +80,105 @@ export default function DonationHistory() {
     const formatDate = (timestamp: any) => {
         if (!timestamp) return 'N/A';
         
-        // Handle Firestore Timestamp
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        let date;
+        if (timestamp.toDate) {
+            date = timestamp.toDate();
+        } else if (timestamp.seconds) {
+            date = new Date(timestamp.seconds * 1000);
+        } else {
+            date = new Date(timestamp);
+        }
         
-        return new Intl.DateTimeFormat('en-US', {
+        return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        }).format(date);
+        });
+    };
+
+    const getTotalDonated = () => {
+        return donations.reduce((sum, donation) => sum + donation.payAmount, 0);
+    };
+
+    const handleGoBack = () => {
+        router.back();
     };
 
     if (loading) {
         return (
-            <SafeAreaView className="flex-1 bg-gray-50">
+            <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
                 <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-                <View className="flex-1 items-center justify-center">
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                     <ActivityIndicator size="large" color="#EF4444" />
-                    <Text className="text-gray-500 mt-4">Loading your donations...</Text>
+                    <Text style={{ color: '#6B7280', marginTop: 16 }}>Loading...</Text>
                 </View>
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-gray-50">
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
             <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
             {/* Header */}
-            <View className="bg-white shadow-sm px-6 py-4 pt-12">
-                <View className="flex-row items-center justify-between">
+            <View style={{ backgroundColor: 'white', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2, paddingHorizontal: 24, paddingVertical: 16, paddingTop: 48 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <TouchableOpacity
-                        className="bg-gray-100 rounded-full p-2 mt-8"
-                        onPress={() => router.back()}
+                        style={{ backgroundColor: '#F3F4F6', borderRadius: 999, padding: 8, marginTop: 32 }}
+                        onPress={handleGoBack}
                     >
                         <Ionicons name="arrow-back" size={24} color="#4B5563" />
                     </TouchableOpacity>
-                    <Text className="text-2xl font-bold text-gray-800 mt-8">
+                    <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#1F2937', marginTop: 32 }}>
                         Donation History
                     </Text>
-                    <View className="w-10" />
+                    <View style={{ width: 40 }} />
                 </View>
             </View>
 
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                {/* Summary Card */}
-                <View className="px-6 py-6">
-                    <View className="bg-orange-500 rounded-2xl shadow-lg p-6">
-                        <View className="flex-row items-center mb-3">
-                            <View className="bg-white rounded-full p-3 mr-4" style={{ opacity: 0.3 }}>
-                                <Ionicons name="heart" size={28} color="white" />
+            {/* Summary Card */}
+            {donations.length > 0 && (
+                <View style={{ paddingHorizontal: 24, paddingTop: 24 }}>
+                    <View style={{ backgroundColor: '#F97316', borderRadius: 16, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 999, padding: 8 }}>
+                                <Ionicons name="heart" size={24} color="white" />
                             </View>
-                            <View className="flex-1">
-                                <Text className="text-white text-sm mb-1" style={{ opacity: 0.9 }}>
-                                    Total Donated
-                                </Text>
-                                <Text className="text-white font-bold text-3xl">
-                                    {formatAmount(totalDonated)}
-                                </Text>
-                            </View>
+                            <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14, marginLeft: 12 }}>Total Contributed</Text>
                         </View>
-                        <View className="bg-white my-3" style={{ height: 1, opacity: 0.2 }} />
-                        <View className="flex-row items-center">
-                            <Ionicons name="gift" size={18} color="white" />
-                            <Text className="text-white text-sm ml-2" style={{ opacity: 0.9 }}>
-                                {donations.length} {donations.length === 1 ? 'donation' : 'donations'} made
-                            </Text>
-                        </View>
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 30, marginLeft: 4 }}>
+                            {formatAmount(getTotalDonated())}
+                        </Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 4, marginLeft: 4 }}>
+                            {donations.length} {donations.length === 1 ? 'donation' : 'donations'}
+                        </Text>
                     </View>
                 </View>
+            )}
 
+            <ScrollView 
+                style={{ flex: 1 }}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor="#EF4444"
+                    />
+                }
+            >
                 {/* Donations List */}
-                <View className="px-6 pb-6">
+                <View style={{ paddingHorizontal: 24, paddingVertical: 24 }}>
                     {donations.length === 0 ? (
-                        <View className="bg-white rounded-2xl shadow-md p-8 items-center">
-                            <View className="bg-gray-100 rounded-full p-4 mb-4">
-                                <Ionicons name="heart-dislike-outline" size={48} color="#9CA3AF" />
+                        <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 32, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+                            <View style={{ backgroundColor: '#F3F4F6', borderRadius: 999, padding: 24, marginBottom: 16 }}>
+                                <Ionicons name="receipt-outline" size={48} color="#9CA3AF" />
                             </View>
-                            <Text className="text-gray-800 font-bold text-lg mb-2">
+                            <Text style={{ color: '#1F2937', fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>
                                 No Donations Yet
                             </Text>
-                            <Text className="text-gray-500 text-center text-sm">
-                                Your donation history will appear here once you make your first contribution.
+                            <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 14 }}>
+                                Your donation history will appear here once you make your first contribution
                             </Text>
                         </View>
                     ) : (
@@ -171,48 +186,41 @@ export default function DonationHistory() {
                             {donations.map((donation, index) => (
                                 <View 
                                     key={donation.id}
-                                    className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 mb-3"
+                                    style={{ backgroundColor: 'white', borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#F3F4F6' }}
                                 >
-                                    <View className="p-4">
-                                        {/* Header with Icon and Amount */}
-                                        <View className="flex-row items-start justify-between mb-3">
-                                            <View className="flex-row items-start flex-1">
-                                                <View className="bg-green-100 rounded-full p-2 mr-3">
-                                                    <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                                                </View>
-                                                <View className="flex-1">
-                                                    <Text className="text-gray-800 font-bold text-base mb-1">
-                                                        {donation.title}
-                                                    </Text>
-                                                    <View className="flex-row items-center">
-                                                        <Ionicons name="calendar-outline" size={14} color="#6B7280" />
-                                                        <Text className="text-gray-500 text-xs ml-1">
-                                                            {formatDate(donation.paymentDate)}
-                                                        </Text>
-                                                    </View>
-                                                </View>
-                                            </View>
-                                            <View className="bg-green-50 rounded-lg px-3 py-2">
-                                                <Text className="text-green-600 font-bold text-lg">
-                                                    {formatAmount(donation.payAmount)}
-                                                </Text>
-                                            </View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                                        {/* Icon */}
+                                        <View style={{ backgroundColor: '#FED7AA', borderRadius: 999, padding: 12, marginRight: 12 }}>
+                                            <Ionicons name="heart" size={20} color="#F97316" />
                                         </View>
 
-                                        {/* Divider */}
-                                        <View className="bg-gray-100 my-3" style={{ height: 1 }} />
-
-                                        {/* Footer */}
-                                        <View className="flex-row items-center justify-between">
-                                            <View className="flex-row items-center">
-                                                <Ionicons name="shield-checkmark" size={16} color="#10B981" />
-                                                <Text className="text-gray-500 text-xs ml-1">
-                                                    Payment successful
+                                        {/* Content */}
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={{ color: '#1F2937', fontWeight: 'bold', fontSize: 16, marginBottom: 4 }}>
+                                                {donation.title}
+                                            </Text>
+                                            
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                                                <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+                                                <Text style={{ color: '#6B7280', fontSize: 14, marginLeft: 4 }}>
+                                                    {formatDate(donation.paymentDate)}
                                                 </Text>
                                             </View>
-                                            <Text className="text-gray-400 text-xs">
-                                                #{index + 1}
-                                            </Text>
+
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                                                <View style={{ backgroundColor: '#DCFCE7', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
+                                                    <Text style={{ color: '#15803D', fontWeight: 'bold', fontSize: 16 }}>
+                                                        {formatAmount(donation.payAmount)}
+                                                    </Text>
+                                                </View>
+
+                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                    <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+                                                    <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '500', marginLeft: 4 }}>
+                                                        Completed
+                                                    </Text>
+                                                </View>
+                                            </View>
                                         </View>
                                     </View>
                                 </View>
@@ -221,7 +229,7 @@ export default function DonationHistory() {
                     )}
                 </View>
 
-                <View className="h-6" />
+                <View style={{ height: 24 }} />
             </ScrollView>
         </SafeAreaView>
     );
