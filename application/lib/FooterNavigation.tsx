@@ -21,7 +21,7 @@ export default function FooterNavigation({ activeTab = 'map' }: FooterNavigation
         router.push('/map-navigation/familyadd' as any);
         break;
       case 'resources':
-        router.push('/articles/article' as any);
+        console.log('Resources button pressed');
         break;
       case 'status':
         router.push('/map-navigation/statusadd' as any);
