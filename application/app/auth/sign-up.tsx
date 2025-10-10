@@ -7,9 +7,11 @@ import { auth, } from '../../config/firebase-config'
 import { db } from '../../config/firebase-config'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { ensureUserDoc, routeByRole } from '../../lib/users'
-import { getUserLocationOnce } from '@/lib/location'
 import { getDefaultLanguage, PreferredLanguage } from '@/lib/locale'
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
+import * as Location from 'expo-location';
+import { useRef } from 'react'
+import MapView, { Marker, MapPressEvent } from 'react-native-maps';
 
 
 export default function SignUp() {
@@ -18,17 +20,21 @@ export default function SignUp() {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const disabled = loading || !email || !password || password.length < 6 || password !== confirm
 
   const [preferredLanguage, setPreferredLanguage] = useState<PreferredLanguage>(getDefaultLanguage());
+
+  const [query, setQuery] = useState('');
+  const [address, setAddress] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const onSubmit = async () => {
     try {
       if (disabled) return
       setLoading(true)
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), password)
-
-      const loc = await getUserLocationOnce();
 
       await ensureUserDoc(cred.user)
 
@@ -38,14 +44,13 @@ export default function SignUp() {
         role: 'user',
         preferredLanguage,
         createdAt: serverTimestamp(),
-        location: loc
-          ? {
-            lat: loc.lat,
-            lng: loc.lng,
-            accuracy: loc.accuracy ?? null,
-            capturedAt: loc.capturedAt,
-          }
-          : null,
+        query,
+        location: {
+          lat: coord.lat,
+          lng: coord.lng,
+          accuracy: null,
+          capturedAt: serverTimestamp(),
+        },
       }, { merge: true })
 
       router.replace('/quiz/onboarding')
@@ -59,6 +64,66 @@ export default function SignUp() {
       setLoading(false)
     }
   }
+
+  const onLatChange = (t: string) => {
+    setLatitude(t);
+    const val = Number(t);
+    if (!Number.isNaN(val)) {
+      setCoord((c) => ({ ...c, lat: val }));
+    }
+  };
+  const onLngChange = (t: string) => {
+    setLongitude(t);
+    const val = Number(t);
+    if (!Number.isNaN(val)) {
+      setCoord((c) => ({ ...c, lng: val }));
+    }
+  };
+
+  // map & marker state
+  const mapRef = useRef<MapView>(null);
+  const [coord, setCoord] = useState({
+    lat: Number(latitude) || 7.8731,
+    lng: Number(longitude) || 80.7718,
+  });
+
+  const animateTo = (lat: number, lng: number) => {
+    mapRef.current?.animateToRegion(
+      { latitude: lat, longitude: lng, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+      300
+    );
+  };
+
+  const updateFromMap = (lat: number, lng: number) => {
+    setCoord({ lat, lng });
+    setLatitude(String(lat));
+    setLongitude(String(lng));
+    animateTo(lat, lng);
+  };
+
+  const onMapPress = (e: MapPressEvent) => {
+    const { latitude: lat, longitude: lng } = e.nativeEvent.coordinate;
+    updateFromMap(lat, lng);
+  };
+
+
+  const searchAddress = async () => {
+    const q = query.trim();
+    if (!q) return;
+    setBusy(true);
+    try {
+      const res = await Location.geocodeAsync(q);
+      if (res?.length) {
+        const { latitude: lat, longitude: lng } = res[0];
+        updateFromMap(lat, lng);
+
+      } else {
+        Alert.alert('Not found', 'No results for that address.');
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -120,6 +185,70 @@ export default function SignUp() {
               </Pressable>
             </View>
 
+          </View>
+
+          {/*  search + map */}
+          <View className="gap-3">
+            <View className="flex-row items-center gap-2">
+              <TextInput
+                className="flex-1 bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white"
+                placeholder="Search address/place"
+                placeholderTextColor="#cbd5e1"
+                value={query}
+                onChangeText={setQuery}
+                returnKeyType="search"
+                onSubmitEditing={searchAddress}
+                autoCapitalize="none"
+              />
+              <Pressable onPress={searchAddress} disabled={busy} className="px-3 py-2 rounded-lg bg-orange-500">
+                <Text className="text-white font-semibold">{busy ? '...' : 'Search'}</Text>
+              </Pressable>
+            </View>
+
+            <View style={{ height: 240, borderRadius: 12, overflow: 'hidden' }}>
+              <MapView
+                ref={mapRef}
+                style={{ flex: 1 }}
+                initialRegion={{
+                  latitude: coord.lat,
+                  longitude: coord.lng,
+                  latitudeDelta: 0.02,
+                  longitudeDelta: 0.02,
+                }}
+                onPress={onMapPress}
+              >
+                <Marker
+                  coordinate={{ latitude: coord.lat, longitude: coord.lng }}
+                  draggable
+                  onDragEnd={(e) => {
+                    const { latitude: lat, longitude: lng } = e.nativeEvent.coordinate;
+                    updateFromMap(lat, lng);
+                  }}
+                />
+              </MapView>
+            </View>
+
+            {/* Coord fields  */}
+            <View className="flex-row gap-2">
+              <TextInput
+                className="flex-1 bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white"
+                placeholder="Latitude"
+                placeholderTextColor="#cbd5e1"
+                value={latitude}
+                onChangeText={onLatChange}
+                keyboardType="numeric"
+                autoCapitalize="none"
+              />
+              <TextInput
+                className="flex-1 bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white"
+                placeholder="Longitude"
+                placeholderTextColor="#cbd5e1"
+                value={longitude}
+                onChangeText={onLngChange}
+                keyboardType="numeric"
+                autoCapitalize="none"
+              />
+            </View>
           </View>
 
           <TextInput
