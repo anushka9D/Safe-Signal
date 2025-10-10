@@ -219,7 +219,7 @@ export default function DonationAdminDashboard() {
 
   const handleDonationClick = (donation: DonationRequest) => {
     // Navigate to edit donation page
-    router.push(`/admin/edit-donation/${donation.id}` as any);
+    router.push(`/admin/donationEdit?id=${donation.id}` as any);
   };
 
   if (loading) {
