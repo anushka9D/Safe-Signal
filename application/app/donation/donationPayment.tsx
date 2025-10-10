@@ -8,7 +8,7 @@ import { db, auth } from '../../config/firebase-config';
 
 export default function DonationPayment() {
     const router = useRouter();
-    const { id } = useLocalSearchParams(); // Get donation request ID from route params
+    const { id } = useLocalSearchParams(); 
     
     const [donationRequest, setDonationRequest] = useState<DonationRequest | null>(null);
     const [loading, setLoading] = useState(true);
@@ -91,6 +91,7 @@ export default function DonationPayment() {
             // After successful payment, store donation data in Firebase
             const donationData = {
                 userId: user.uid,
+                userName: user.displayName || 'Anonymous',
                 title: donationRequest?.title,
                 paymentDate: serverTimestamp(),
                 payAmount: amount,

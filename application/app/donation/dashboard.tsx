@@ -1,24 +1,110 @@
-import { Text, View, TouchableOpacity, SafeAreaView, StatusBar, ScrollView } from "react-native";
+import { Text, View, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
+import { useState, useEffect } from 'react';
+import { collection, query, getDocs } from 'firebase/firestore';
+import { db, auth } from '../../config/firebase-config';
 
 export default function DonationDashboard() {
     const router = useRouter();
+    const [loading, setLoading] = useState(true);
+    const [userRank, setUserRank] = useState({
+        position: 0,
+        name: "",
+        donations: 0,
+        totalAmount: 0
+    });
+    const [topDonors, setTopDonors] = useState<any[]>([]);
 
-    // Mock data
-    const userRank = {
-        position: 12,
-        name: "John Doe",
-        donations: 15
+    useEffect(() => {
+        fetchDonationData();
+    }, []);
+
+    const fetchDonationData = async () => {
+        try {
+            setLoading(true);
+            const user = auth.currentUser;
+            
+            if (!user) {
+                console.log('No user logged in');
+                setLoading(false);
+                return;
+            }
+
+            // Fetch all donations
+            const donationsRef = collection(db, 'donation');
+            const donationsSnapshot = await getDocs(donationsRef);
+            
+            // Group donations by userId and calculate totals
+            const donorStats: any = {};
+            
+            donationsSnapshot.forEach((doc) => {
+                const data = doc.data();
+                const userId = data.userId;
+                
+                if (!donorStats[userId]) {
+                    donorStats[userId] = {
+                        userId: userId,
+                        count: 0,
+                        totalAmount: 0,
+                        name: data.userName || 'Anonymous'
+                    };
+                }
+                
+                donorStats[userId].count += 1;
+                donorStats[userId].totalAmount += (data.payAmount || 0);
+            });
+
+            // Convert to array and sort by donation count
+            const sortedDonors = Object.values(donorStats).sort((a: any, b: any) => b.count - a.count);
+
+            // Get top 5 donors
+            const top5 = sortedDonors.slice(0, 5).map((donor: any, index) => ({
+                id: index + 1,
+                userId: donor.userId,
+                name: donor.name,
+                donations: donor.count,
+                totalAmount: donor.totalAmount
+            }));
+
+            setTopDonors(top5);
+
+            // Find current user's rank
+            const userIndex = sortedDonors.findIndex((donor: any) => donor.userId === user.uid);
+            
+            if (userIndex !== -1) {
+                const userData: any = sortedDonors[userIndex];
+                setUserRank({
+                    position: userIndex + 1,
+                    name: userData.name || user.displayName || 'You',
+                    donations: userData.count,
+                    totalAmount: userData.totalAmount
+                });
+            } else {
+                // User has no donations yet
+                setUserRank({
+                    position: sortedDonors.length + 1,
+                    name: user.displayName || 'You',
+                    donations: 0,
+                    totalAmount: 0
+                });
+            }
+
+        } catch (error) {
+            console.error('Error fetching donation data:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const topDonors = [
-        { id: 1, name: "Sarah Johnson", donations: 48 },
-        { id: 2, name: "Michael Chen", donations: 42 },
-        { id: 3, name: "Emma Williams", donations: 38 },
-        { id: 4, name: "David Brown", donations: 35 },
-        { id: 5, name: "Lisa Anderson", donations: 32 },
-    ];
+    const formatAmount = (amount: number) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(amount);
+    };
 
     const getRankColor = (position: number) => {
         if (position === 1) return "bg-yellow-500";
@@ -33,6 +119,17 @@ export default function DonationDashboard() {
         if (position === 3) return "medal";
         return "ribbon";
     };
+
+    if (loading) {
+        return (
+            <SafeAreaView className="flex-1 bg-gray-50">
+                <View className="flex-1 items-center justify-center">
+                    <ActivityIndicator size="large" color="#EF4444" />
+                    <Text className="text-gray-500 mt-4">Loading dashboard...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
@@ -71,7 +168,7 @@ export default function DonationDashboard() {
                                 </View>
                                 <Text className="text-gray-600 font-medium mb-1">{userRank.name}</Text>
                                 <Text className="text-gray-500 text-sm">
-                                    {userRank.donations} donations completed
+                                    {userRank.donations} donations • {formatAmount(userRank.totalAmount)} contributed
                                 </Text>
                             </View>
                         </View>
@@ -81,28 +178,37 @@ export default function DonationDashboard() {
                 {/* Top 5 Donors Section */}
                 <View className="px-6 pb-6">
                     <Text className="text-lg font-bold text-gray-800 mb-4">Top 5 Donors</Text>
-                    <View className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
-                        {topDonors.map((donor, index) => (
-                            <View
-                                key={donor.id}
-                                className={`flex-row items-center p-4 ${
-                                    index !== topDonors.length - 1 ? 'border-b border-gray-100' : ''
-                                }`}
-                            >
-                                <View className={`${getRankColor(index + 1)} rounded-full w-12 h-12 items-center justify-center mr-4`}>
-                                    <Text className="text-white font-bold text-lg">{index + 1}</Text>
+                    {topDonors.length > 0 ? (
+                        <View className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
+                            {topDonors.map((donor, index) => (
+                                <View
+                                    key={donor.id}
+                                    className={`flex-row items-center p-4 ${
+                                        index !== topDonors.length - 1 ? 'border-b border-gray-100' : ''
+                                    }`}
+                                >
+                                    <View className={`${getRankColor(index + 1)} rounded-full w-12 h-12 items-center justify-center mr-4`}>
+                                        <Text className="text-white font-bold text-lg">{index + 1}</Text>
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-gray-800 font-semibold text-base mb-1">
+                                            {donor.name}
+                                        </Text>
+                                        <Text className="text-gray-500 text-sm">
+                                            {donor.donations} donations • {formatAmount(donor.totalAmount)}
+                                        </Text>
+                                    </View>
                                 </View>
-                                <View className="flex-1">
-                                    <Text className="text-gray-800 font-semibold text-base mb-1">
-                                        {donor.name}
-                                    </Text>
-                                    <Text className="text-gray-500 text-sm">
-                                        {donor.donations} donations
-                                    </Text>
-                                </View>
-                            </View>
-                        ))}
-                    </View>
+                            ))}
+                        </View>
+                    ) : (
+                        <View className="bg-white rounded-2xl shadow-md p-8 items-center border border-gray-100">
+                            <Ionicons name="people-outline" size={48} color="#D1D5DB" />
+                            <Text className="text-gray-500 mt-3 text-center">
+                                No donors yet. Be the first to donate!
+                            </Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Action Buttons */}
