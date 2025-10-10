@@ -9,124 +9,128 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Image
+  Image,
+  Modal
 } from 'react-native';
-import { useState } from 'react';
-import { collection, addDoc, serverTimestamp, getDocs, orderBy, query, deleteDoc, doc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { collection, addDoc, serverTimestamp, getDocs, orderBy, query, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../../config/firebase-config';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
 
-// Cloudinary configuration - Replace with your actual values
+// Cloudinary configuration
 const CLOUDINARY_CLOUD_NAME = 'dweg4sz3l';
 const CLOUDINARY_UPLOAD_PRESET = 'safesignal';
-const CLOUDINARY_API_KEY = '752669573695597';
+
+interface ArticleParagraph {
+  id: string;
+  text: string;
+  imageUrl?: string;
+}
+
+interface Article {
+  id: string;
+  title: string;
+  headerImageUrl: string;
+  paragraphs: ArticleParagraph[];
+  author: string;
+  category: string;
+  disasterType: string[];
+  knowledgeLevel: string[];
+  tags: string[];
+  summary: string;
+  readTime: number;
+  cloudinaryPublicIds: string[];
+  createdAt: any;
+  updatedAt: any;
+  isPublished: boolean;
+  views: number;
+  likes: number;
+}
 
 export default function Content() {
   const [loading, setLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
-  const [articles, setArticles] = useState<any[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
 
   // Form state
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
   const [author, setAuthor] = useState('');
   const [category, setCategory] = useState('');
+  const [disasterTypes, setDisasterTypes] = useState<string[]>([]);
+  const [knowledgeLevels, setKnowledgeLevels] = useState<string[]>([]);
   const [tags, setTags] = useState('');
-  const [imageUri, setImageUri] = useState('');
-  const [imageUrl, setImageUrl] = useState(''); // Cloudinary URL
-  const [cloudinaryPublicId, setCloudinaryPublicId] = useState(''); // For deletion
+  const [headerImageUrl, setHeaderImageUrl] = useState('');
   const [summary, setSummary] = useState('');
+  const [paragraphs, setParagraphs] = useState<ArticleParagraph[]>([
+    { id: '1', text: '', imageUrl: '' }
+  ]);
+  const [cloudinaryPublicIds, setCloudinaryPublicIds] = useState<string[]>([]);
+  const [readTime, setReadTime] = useState(5);
 
-  const categories = ['Earthquakes', 'Floods', 'Fire', 'Medical', 'Security', 'Weather', 'General'];
+  const categories = ['Preparation', 'Response', 'Recovery', 'Prevention', 'Education', 'Safety'];
+  const disasterTypeOptions = ['earthquake', 'flood', 'storm', 'landslide', 'common'];
+  const knowledgeLevelOptions = ['beginner', 'intermediate', 'advanced'];
+
+  useEffect(() => {
+    loadArticles();
+  }, []);
 
   const resetForm = () => {
     setTitle('');
-    setContent('');
     setAuthor('');
     setCategory('');
+    setDisasterTypes([]);
+    setKnowledgeLevels([]);
     setTags('');
-    setImageUri('');
-    setImageUrl('');
-    setCloudinaryPublicId('');
+    setHeaderImageUrl('');
     setSummary('');
+    setParagraphs([{ id: '1', text: '', imageUrl: '' }]);
+    setCloudinaryPublicIds([]);
+    setReadTime(5);
     setShowAddForm(false);
+    setEditingArticle(null);
   };
 
   const uploadImageToCloudinary = async (uri: string): Promise<{ url: string; publicId: string }> => {
     try {
-      // Create form data
       const formData = new FormData();
-      
-      // Add the image file
       formData.append('file', {
         uri: uri,
         type: 'image/jpeg',
         name: 'image.jpg',
       } as any);
-      
-      // Add upload preset (required for unsigned uploads)
       formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-      
-      // Optional: Add folder organization
       formData.append('folder', 'articles');
-      
-      // Optional: Add context/tags
-      formData.append('context', `uploaded_by=${auth.currentUser?.uid || 'anonymous'}`);
-      formData.append('tags', 'article,mobile_upload');
 
-      console.log('Uploading to Cloudinary...');
-      
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
         {
           method: 'POST',
           body: formData,
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
+          headers: { 'Content-Type': 'multipart/form-data' },
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`Cloudinary upload failed: ${errorData.error?.message || response.status}`);
+        throw new Error(`Upload failed: ${errorData.error?.message || response.status}`);
       }
 
       const data = await response.json();
-      console.log('Cloudinary upload successful:', data.secure_url);
-
-      return {
-        url: data.secure_url,
-        publicId: data.public_id
-      };
+      return { url: data.secure_url, publicId: data.public_id };
     } catch (error) {
       console.error('Error uploading to Cloudinary:', error);
       throw error;
     }
   };
 
-  const deleteImageFromCloudinary = async (publicId: string) => {
-    try {
-      // For image deletion, you'll need to implement server-side deletion
-      // or use Cloudinary's Admin API with authentication
-      // This is a placeholder - see implementation notes below
-      console.log('Would delete image with public_id:', publicId);
-      
-      // You can call your backend API here to delete the image
-      // const response = await fetch('your-backend/delete-image', {
-      //   method: 'DELETE',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ publicId })
-      // });
-      
-    } catch (error) {
-      console.error('Error deleting image from Cloudinary:', error);
-    }
-  };
-
-  const pickImage = async () => {
+  const pickHeaderImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -136,36 +140,99 @@ export default function Content() {
       });
 
       if (!result.canceled) {
-        setImageUri(result.assets[0].uri);
-        
-        // Upload image to Cloudinary
         setImageUploading(true);
         try {
           const uploadResult = await uploadImageToCloudinary(result.assets[0].uri);
-          setImageUrl(uploadResult.url);
-          setCloudinaryPublicId(uploadResult.publicId);
-          Alert.alert('Success', 'Image uploaded successfully!');
+          setHeaderImageUrl(uploadResult.url);
+          setCloudinaryPublicIds([...cloudinaryPublicIds, uploadResult.publicId]);
+          Alert.alert('Success', 'Header image uploaded!');
         } catch (error) {
-          Alert.alert('Error', 'Failed to upload image');
-          console.error('Image upload error:', error);
-          setImageUri(''); // Clear local URI if upload failed
+          Alert.alert('Error', 'Failed to upload header image');
         } finally {
           setImageUploading(false);
         }
       }
     } catch (error) {
-      console.error('Error picking image:', error);
       Alert.alert('Error', 'Failed to pick image');
     }
+  };
+
+  const pickParagraphImage = async (paragraphId: string) => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        setImageUploading(true);
+        try {
+          const uploadResult = await uploadImageToCloudinary(result.assets[0].uri);
+          setParagraphs(paragraphs.map(p => 
+            p.id === paragraphId ? { ...p, imageUrl: uploadResult.url } : p
+          ));
+          setCloudinaryPublicIds([...cloudinaryPublicIds, uploadResult.publicId]);
+          Alert.alert('Success', 'Image uploaded!');
+        } catch (error) {
+          Alert.alert('Error', 'Failed to upload image');
+        } finally {
+          setImageUploading(false);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const addParagraph = () => {
+    setParagraphs([...paragraphs, { 
+      id: Date.now().toString(), 
+      text: '', 
+      imageUrl: '' 
+    }]);
+  };
+
+  const removeParagraph = (paragraphId: string) => {
+    if (paragraphs.length > 1) {
+      setParagraphs(paragraphs.filter(p => p.id !== paragraphId));
+    }
+  };
+
+  const updateParagraphText = (paragraphId: string, text: string) => {
+    setParagraphs(paragraphs.map(p => 
+      p.id === paragraphId ? { ...p, text } : p
+    ));
+  };
+
+  const toggleDisasterType = (type: string) => {
+    if (disasterTypes.includes(type)) {
+      setDisasterTypes(disasterTypes.filter(t => t !== type));
+    } else {
+      setDisasterTypes([...disasterTypes, type]);
+    }
+  };
+
+  const toggleKnowledgeLevel = (level: string) => {
+    if (knowledgeLevels.includes(level)) {
+      setKnowledgeLevels(knowledgeLevels.filter(l => l !== level));
+    } else {
+      setKnowledgeLevels([...knowledgeLevels, level]);
+    }
+  };
+
+  const calculateReadTime = () => {
+    const totalWords = paragraphs.reduce((total, p) => {
+      return total + p.text.split(/\s+/).length;
+    }, 0);
+    const estimatedTime = Math.max(1, Math.ceil(totalWords / 200));
+    setReadTime(estimatedTime);
   };
 
   const validateForm = () => {
     if (!title.trim()) {
       Alert.alert('Validation Error', 'Title is required');
-      return false;
-    }
-    if (!content.trim()) {
-      Alert.alert('Validation Error', 'Content is required');
       return false;
     }
     if (!author.trim()) {
@@ -176,37 +243,69 @@ export default function Content() {
       Alert.alert('Validation Error', 'Category is required');
       return false;
     }
+    if (disasterTypes.length === 0) {
+      Alert.alert('Validation Error', 'Select at least one disaster type');
+      return false;
+    }
+    if (knowledgeLevels.length === 0) {
+      Alert.alert('Validation Error', 'Select at least one knowledge level');
+      return false;
+    }
+    if (!headerImageUrl) {
+      Alert.alert('Validation Error', 'Header image is required');
+      return false;
+    }
+    if (paragraphs.filter(p => p.text.trim()).length === 0) {
+      Alert.alert('Validation Error', 'Add at least one paragraph');
+      return false;
+    }
     return true;
   };
 
-  const addArticle = async () => {
+  const saveArticle = async () => {
     if (!validateForm()) return;
 
     setLoading(true);
     try {
+      calculateReadTime();
+      
       const articleData = {
         title: title.trim(),
-        content: content.trim(),
+        headerImageUrl,
+        paragraphs: paragraphs.filter(p => p.text.trim()).map(p => ({
+          text: p.text.trim(),
+          imageUrl: p.imageUrl || null
+        })),
         author: author.trim(),
-        category: category,
+        category,
+        disasterType: disasterTypes,
+        knowledgeLevel: knowledgeLevels,
         tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
-        summary: summary.trim() || content.substring(0, 150) + '...',
-        imageUrl: imageUrl || null, // Cloudinary URL
-        cloudinaryPublicId: cloudinaryPublicId || null, // For future deletion
-        createdAt: serverTimestamp(),
+        summary: summary.trim() || paragraphs[0]?.text.substring(0, 150) + '...',
+        readTime,
+        cloudinaryPublicIds,
         updatedAt: serverTimestamp(),
         isPublished: true,
-        views: 0,
-        likes: 0
+        views: editingArticle?.views || 0,
+        likes: editingArticle?.likes || 0
       };
 
-      await addDoc(collection(db, 'articles'), articleData);
-      Alert.alert('Success', 'Article added successfully!');
+      if (editingArticle) {
+        await updateDoc(doc(db, 'articles', editingArticle.id), articleData);
+        Alert.alert('Success', 'Article updated successfully!');
+      } else {
+        await addDoc(collection(db, 'articles'), {
+          ...articleData,
+          createdAt: serverTimestamp()
+        });
+        Alert.alert('Success', 'Article published successfully!');
+      }
+      
       resetForm();
       loadArticles();
     } catch (error) {
-      console.error('Error adding article:', error);
-      Alert.alert('Error', 'Failed to add article');
+      console.error('Error saving article:', error);
+      Alert.alert('Error', 'Failed to save article');
     } finally {
       setLoading(false);
     }
@@ -223,7 +322,7 @@ export default function Content() {
       const articlesList = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }));
+      } as Article));
       setArticles(articlesList);
     } catch (error) {
       console.error('Error loading articles:', error);
@@ -231,6 +330,26 @@ export default function Content() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const editArticle = (article: Article) => {
+    setEditingArticle(article);
+    setTitle(article.title);
+    setAuthor(article.author);
+    setCategory(article.category);
+    setDisasterTypes(article.disasterType || []);
+    setKnowledgeLevels(article.knowledgeLevel || []);
+    setTags(article.tags?.join(', ') || '');
+    setHeaderImageUrl(article.headerImageUrl);
+    setSummary(article.summary);
+    setParagraphs(article.paragraphs.map((p, idx) => ({
+      id: idx.toString(),
+      text: p.text,
+      imageUrl: p.imageUrl || ''
+    })));
+    setCloudinaryPublicIds(article.cloudinaryPublicIds || []);
+    setReadTime(article.readTime || 5);
+    setShowAddForm(true);
   };
 
   const deleteArticle = async (articleId: string) => {
@@ -244,19 +363,6 @@ export default function Content() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const articleToDelete = articles.find(article => article.id === articleId);
-              
-              // Delete image from Cloudinary if it exists
-              if (articleToDelete?.cloudinaryPublicId) {
-                try {
-                  await deleteImageFromCloudinary(articleToDelete.cloudinaryPublicId);
-                } catch (imageError) {
-                  console.error('Error deleting image:', imageError);
-                  // Continue with article deletion even if image deletion fails
-                }
-              }
-              
-              // Delete article document
               await deleteDoc(doc(db, 'articles', articleId));
               Alert.alert('Success', 'Article deleted successfully');
               loadArticles();
@@ -268,6 +374,11 @@ export default function Content() {
         }
       ]
     );
+  };
+
+  const previewArticleHandler = (article: Article) => {
+    setPreviewArticle(article);
+    setShowPreview(true);
   };
 
   return (
@@ -285,38 +396,34 @@ export default function Content() {
                 className="bg-blue-500 px-4 py-2 rounded-lg"
                 disabled={loading}
               >
-                <Text className="text-white font-semibold">Refresh</Text>
+                <Ionicons name="refresh" size={20} color="white" />
               </Pressable>
               <Pressable
-                onPress={() => setShowAddForm(!showAddForm)}
+                onPress={() => {
+                  if (showAddForm) resetForm();
+                  else setShowAddForm(true);
+                }}
                 className="bg-orange-500 px-4 py-2 rounded-lg"
               >
                 <Text className="text-white font-semibold">
-                  {showAddForm ? 'Cancel' : 'Add Article'}
+                  {showAddForm ? 'Cancel' : '+ New Article'}
                 </Text>
               </Pressable>
             </View>
           </View>
 
-          {/* Cloudinary Configuration Warning */}
-          {(CLOUDINARY_CLOUD_NAME === 'dweg4sz3l') && showAddForm && (
-            <View className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 mb-4">
-              <Text className="text-red-300 font-semibold mb-2">⚠️ Configuration Required</Text>
-              <Text className="text-red-200 text-sm">
-                Please update the Cloudinary configuration constants at the top of this file with your actual Cloudinary credentials.
-              </Text>
-            </View>
-          )}
-
-          {/* Add Article Form */}
+          {/* Add/Edit Article Form */}
           {showAddForm && (
             <View className="bg-white/10 rounded-xl p-4 mb-6">
-              <Text className="text-white text-lg font-bold mb-4">Add New Article</Text>
+              <Text className="text-white text-xl font-bold mb-4">
+                {editingArticle ? 'Edit Article' : 'Create New Article'}
+              </Text>
 
               {/* Title */}
+              <Text className="text-white mb-2 font-semibold">Article Title *</Text>
               <TextInput
-                className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white mb-3"
-                placeholder="Article Title"
+                className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white mb-4"
+                placeholder="Enter article title"
                 placeholderTextColor="#cbd5e1"
                 value={title}
                 onChangeText={setTitle}
@@ -324,48 +431,114 @@ export default function Content() {
               />
 
               {/* Author */}
+              <Text className="text-white mb-2 font-semibold">Author Name *</Text>
               <TextInput
-                className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white mb-3"
-                placeholder="Author Name"
+                className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white mb-4"
+                placeholder="Enter author name"
                 placeholderTextColor="#cbd5e1"
                 value={author}
                 onChangeText={setAuthor}
               />
 
-              {/* Category Selection */}
-              <View className="mb-3">
-                <Text className="text-white mb-2">Category</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View className="flex-row gap-2">
-                    {categories.map((cat) => (
-                      <Pressable
-                        key={cat}
-                        onPress={() => setCategory(cat)}
-                        className={`px-3 py-2 rounded-lg border ${category === cat
-                            ? 'bg-orange-500 border-orange-500'
-                            : 'bg-white/10 border-white/15'
-                          }`}
-                      >
-                        <Text className="text-white text-sm font-semibold">{cat}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </ScrollView>
+              {/* Category */}
+              <Text className="text-white mb-2 font-semibold">Category *</Text>
+              <View className="bg-white/10 border border-white/15 rounded-xl mb-4">
+                <Picker
+                  selectedValue={category}
+                  onValueChange={setCategory}
+                  style={{ color: 'white' }}
+                  dropdownIconColor="white"
+                >
+                  <Picker.Item label="Select category..." value="" />
+                  {categories.map(cat => (
+                    <Picker.Item key={cat} label={cat} value={cat} />
+                  ))}
+                </Picker>
+              </View>
+
+              {/* Disaster Types */}
+              <Text className="text-white mb-2 font-semibold">Disaster Types * (Select all that apply)</Text>
+              <View className="flex-row flex-wrap gap-2 mb-4">
+                {disasterTypeOptions.map(type => (
+                  <Pressable
+                    key={type}
+                    onPress={() => toggleDisasterType(type)}
+                    className={`px-3 py-2 rounded-lg border ${
+                      disasterTypes.includes(type)
+                        ? 'bg-orange-500 border-orange-500'
+                        : 'bg-white/10 border-white/15'
+                    }`}
+                  >
+                    <Text className="text-white text-sm font-semibold capitalize">
+                      {type}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              {/* Knowledge Levels */}
+              <Text className="text-white mb-2 font-semibold">Knowledge Levels * (Target audience)</Text>
+              <View className="flex-row flex-wrap gap-2 mb-4">
+                {knowledgeLevelOptions.map(level => (
+                  <Pressable
+                    key={level}
+                    onPress={() => toggleKnowledgeLevel(level)}
+                    className={`px-3 py-2 rounded-lg border ${
+                      knowledgeLevels.includes(level)
+                        ? 'bg-blue-500 border-blue-500'
+                        : 'bg-white/10 border-white/15'
+                    }`}
+                  >
+                    <Text className="text-white text-sm font-semibold capitalize">
+                      {level}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
 
               {/* Tags */}
+              <Text className="text-white mb-2 font-semibold">Tags (comma separated)</Text>
               <TextInput
-                className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white mb-3"
-                placeholder="Tags (comma separated)"
+                className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white mb-4"
+                placeholder="e.g., safety, preparation, emergency"
                 placeholderTextColor="#cbd5e1"
                 value={tags}
                 onChangeText={setTags}
               />
 
+              {/* Header Image */}
+              <Text className="text-white mb-2 font-semibold">Header Image *</Text>
+              <Pressable
+                onPress={pickHeaderImage}
+                disabled={imageUploading}
+                className={`border border-white/15 rounded-xl px-4 py-3 flex-row items-center justify-center mb-2 ${
+                  imageUploading ? 'bg-white/5' : 'bg-white/10'
+                }`}
+              >
+                {imageUploading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <Ionicons name="image-outline" size={20} color="white" />
+                    <Text className="text-white ml-2">
+                      {headerImageUrl ? 'Change Header Image' : 'Upload Header Image'}
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+              {headerImageUrl && (
+                <Image
+                  source={{ uri: headerImageUrl }}
+                  className="w-full h-40 rounded-lg mb-4"
+                  resizeMode="cover"
+                />
+              )}
+
               {/* Summary */}
+              <Text className="text-white mb-2 font-semibold">Summary (optional)</Text>
               <TextInput
-                className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white mb-3"
-                placeholder="Summary (optional - will auto-generate if empty)"
+                className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white mb-4"
+                placeholder="Brief summary of the article..."
                 placeholderTextColor="#cbd5e1"
                 value={summary}
                 onChangeText={setSummary}
@@ -373,53 +546,75 @@ export default function Content() {
                 numberOfLines={3}
               />
 
-              {/* Image Picker */}
-              <View className="mb-3">
-                <Pressable
-                  onPress={pickImage}
-                  disabled={imageUploading}
-                  className={`border border-white/15 rounded-xl px-4 py-3 flex-row items-center justify-center ${
-                    imageUploading ? 'bg-white/5' : 'bg-white/10'
-                  }`}
-                >
-                  {imageUploading ? (
-                    <>
-                      <ActivityIndicator size="small" color="white" />
-                      <Text className="text-white ml-2">Uploading to Cloudinary...</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons name="image-outline" size={20} color="white" />
-                      <Text className="text-white ml-2">
-                        {imageUrl ? 'Change Image' : 'Pick Image'}
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
-                {(imageUri || imageUrl) && (
-                  <Image
-                    source={{ uri: imageUrl || imageUri }}
-                    className="w-full h-32 rounded-lg mt-2"
-                    resizeMode="cover"
+              {/* Paragraphs */}
+              <Text className="text-white mb-2 font-semibold text-lg">Article Content *</Text>
+              {paragraphs.map((paragraph, index) => (
+                <View key={paragraph.id} className="bg-white/5 rounded-xl p-3 mb-3">
+                  <View className="flex-row justify-between items-center mb-2">
+                    <Text className="text-white font-semibold">Paragraph {index + 1}</Text>
+                    {paragraphs.length > 1 && (
+                      <Pressable
+                        onPress={() => removeParagraph(paragraph.id)}
+                        className="bg-red-500/20 px-2 py-1 rounded"
+                      >
+                        <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                      </Pressable>
+                    )}
+                  </View>
+                  
+                  <TextInput
+                    className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white mb-2"
+                    placeholder="Write your paragraph here..."
+                    placeholderTextColor="#cbd5e1"
+                    value={paragraph.text}
+                    onChangeText={(text) => updateParagraphText(paragraph.id, text)}
+                    multiline
+                    numberOfLines={5}
+                    textAlignVertical="top"
                   />
-                )}
-              </View>
 
-              {/* Content */}
-              <TextInput
-                className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white mb-4"
-                placeholder="Article Content"
-                placeholderTextColor="#cbd5e1"
-                value={content}
-                onChangeText={setContent}
-                multiline
-                numberOfLines={8}
-                textAlignVertical="top"
-              />
+                  <Pressable
+                    onPress={() => pickParagraphImage(paragraph.id)}
+                    disabled={imageUploading}
+                    className="border border-white/15 rounded-xl px-3 py-2 flex-row items-center justify-center bg-white/10"
+                  >
+                    <Ionicons name="image-outline" size={16} color="white" />
+                    <Text className="text-white text-sm ml-2">
+                      {paragraph.imageUrl ? 'Change Image' : 'Add Image (optional)'}
+                    </Text>
+                  </Pressable>
+
+                  {paragraph.imageUrl && (
+                    <Image
+                      source={{ uri: paragraph.imageUrl }}
+                      className="w-full h-32 rounded-lg mt-2"
+                      resizeMode="cover"
+                    />
+                  )}
+                </View>
+              ))}
+
+              <Pressable
+                onPress={addParagraph}
+                className="bg-white/10 border border-dashed border-white/30 rounded-xl px-4 py-3 flex-row items-center justify-center mb-4"
+              >
+                <Ionicons name="add-circle-outline" size={20} color="white" />
+                <Text className="text-white ml-2 font-semibold">Add Another Paragraph</Text>
+              </Pressable>
+
+              {/* Read Time Calculator */}
+              <Pressable
+                onPress={calculateReadTime}
+                className="bg-blue-500/20 px-4 py-2 rounded-lg mb-4"
+              >
+                <Text className="text-blue-300 text-center">
+                  Estimated Read Time: {readTime} min
+                </Text>
+              </Pressable>
 
               {/* Submit Button */}
               <Pressable
-                onPress={addArticle}
+                onPress={saveArticle}
                 disabled={loading || imageUploading}
                 className={`rounded-xl px-4 py-3 items-center ${
                   loading || imageUploading ? 'bg-orange-500/60' : 'bg-orange-500'
@@ -428,7 +623,9 @@ export default function Content() {
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text className="text-white font-extrabold">Add Article</Text>
+                  <Text className="text-white font-extrabold">
+                    {editingArticle ? 'Update Article' : 'Publish Article'}
+                  </Text>
                 )}
               </Pressable>
             </View>
@@ -444,53 +641,76 @@ export default function Content() {
               <View className="bg-white/10 rounded-xl p-6 items-center">
                 <Ionicons name="document-outline" size={48} color="#cbd5e1" />
                 <Text className="text-white text-center mt-2">
-                  No articles yet. Click "Add Article" to create your first article.
+                  No articles yet. Click "+ New Article" to create one.
                 </Text>
               </View>
             ) : (
               articles.map((article) => (
                 <View key={article.id} className="bg-white/10 rounded-xl p-4 mb-4">
-                  <View className="flex-row items-start justify-between">
-                    <View className="flex-1 mr-3">
+                  <View className="flex-row">
+                    {article.headerImageUrl && (
+                      <Image
+                        source={{ uri: article.headerImageUrl }}
+                        className="w-24 h-24 rounded-lg mr-3"
+                        resizeMode="cover"
+                      />
+                    )}
+                    <View className="flex-1">
                       <Text className="text-white font-bold text-lg mb-1">
                         {article.title}
                       </Text>
                       <Text className="text-gray-300 text-sm mb-2">
                         By {article.author} • {article.category}
                       </Text>
-                      <Text className="text-gray-400 text-sm" numberOfLines={2}>
-                        {article.summary}
-                      </Text>
-                      {article.tags && article.tags.length > 0 && (
-                        <Text className="text-gray-500 text-xs mt-2">
-                          Tags: {article.tags.join(', ')}
-                        </Text>
-                      )}
+                      <View className="flex-row flex-wrap gap-1 mb-2">
+                        {article.disasterType?.map(type => (
+                          <View key={type} className="bg-orange-500/30 px-2 py-1 rounded">
+                            <Text className="text-orange-300 text-xs capitalize">{type}</Text>
+                          </View>
+                        ))}
+                      </View>
+                      <View className="flex-row flex-wrap gap-1">
+                        {article.knowledgeLevel?.map(level => (
+                          <View key={level} className="bg-blue-500/30 px-2 py-1 rounded">
+                            <Text className="text-blue-300 text-xs capitalize">{level}</Text>
+                          </View>
+                        ))}
+                      </View>
                     </View>
-                    {article.imageUrl && (
-                      <Image
-                        source={{ uri: article.imageUrl }}
-                        className="w-16 h-16 rounded-lg"
-                        resizeMode="cover"
-                      />
-                    )}
                   </View>
 
                   <View className="flex-row justify-between items-center mt-3 pt-3 border-t border-white/10">
-                    <View className="flex-row gap-4">
+                    <View className="flex-row gap-3">
                       <Text className="text-gray-400 text-xs">
-                        Views: {article.views || 0}
+                        📖 {article.readTime || 5} min
                       </Text>
                       <Text className="text-gray-400 text-xs">
-                        Likes: {article.likes || 0}
+                        👁️ {article.views || 0}
+                      </Text>
+                      <Text className="text-gray-400 text-xs">
+                        ❤️ {article.likes || 0}
                       </Text>
                     </View>
-                    <Pressable
-                      onPress={() => deleteArticle(article.id)}
-                      className="bg-red-500/20 px-3 py-1 rounded-lg"
-                    >
-                      <Text className="text-red-400 text-sm font-semibold">Delete</Text>
-                    </Pressable>
+                    <View className="flex-row gap-2">
+                      <Pressable
+                        onPress={() => previewArticleHandler(article)}
+                        className="bg-blue-500/20 px-3 py-1 rounded-lg"
+                      >
+                        <Text className="text-blue-400 text-sm font-semibold">Preview</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => editArticle(article)}
+                        className="bg-green-500/20 px-3 py-1 rounded-lg"
+                      >
+                        <Text className="text-green-400 text-sm font-semibold">Edit</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => deleteArticle(article.id)}
+                        className="bg-red-500/20 px-3 py-1 rounded-lg"
+                      >
+                        <Text className="text-red-400 text-sm font-semibold">Delete</Text>
+                      </Pressable>
+                    </View>
                   </View>
                 </View>
               ))
@@ -505,6 +725,61 @@ export default function Content() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Preview Modal */}
+      <Modal
+        visible={showPreview}
+        animationType="slide"
+        onRequestClose={() => setShowPreview(false)}
+      >
+        <SafeAreaView className="flex-1 bg-white">
+          <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
+            <Text className="text-xl font-bold">Article Preview</Text>
+            <Pressable onPress={() => setShowPreview(false)}>
+              <Ionicons name="close" size={28} color="#000" />
+            </Pressable>
+          </View>
+          
+          <ScrollView className="flex-1">
+            {previewArticle && (
+              <>
+                {previewArticle.headerImageUrl && (
+                  <Image
+                    source={{ uri: previewArticle.headerImageUrl }}
+                    className="w-full h-64"
+                    resizeMode="cover"
+                  />
+                )}
+                <View className="p-6">
+                  <Text className="text-3xl font-bold text-gray-900 mb-4">
+                    {previewArticle.title}
+                  </Text>
+                  <View className="flex-row items-center mb-6">
+                    <Text className="text-gray-600">
+                      By {previewArticle.author} • {previewArticle.readTime} min read
+                    </Text>
+                  </View>
+                  {previewArticle.paragraphs?.map((para, idx) => (
+                    <View key={idx} className="mb-6">
+                      <Text className="text-lg text-gray-700 leading-relaxed mb-4">
+                        {para.text}
+                      </Text>
+                      {para.imageUrl && (
+                        <Image
+                          source={{ uri: para.imageUrl }}
+                          className="w-full h-48 rounded-lg"
+                          resizeMode="cover"
+                        />
+                      )}
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
+
