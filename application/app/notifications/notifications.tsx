@@ -1,97 +1,158 @@
-import { Text, View, TouchableOpacity, SafeAreaView, StatusBar, ScrollView } from "react-native";
+import { Text, View, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, ActivityIndicator, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../../config/firebase-config';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+
+interface Notification {
+    id: string;
+    type: 'alert' | 'warning';
+    title: string;
+    message: string;
+    createdAt: any;
+}
 
 export default function Notifications() {
     const router = useRouter();
     const [activeFilter, setActiveFilter] = useState('All');
-    const [expandedNotifications, setExpandedNotifications] = useState<Record<number, boolean>>({});
+    const [expandedNotifications, setExpandedNotifications] = useState<Record<string, boolean>>({});
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [readNotifications, setReadNotifications] = useState<Set<string>>(new Set());
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-        const notifications = [
-        {
-            id: 1,
-            type: "alert",
-            title: "🌊 FLOOD WARNING:",
-            message: "River levels rising rapidly due to continuous rainfall. Residents in low-lying areas are advised to evacuate to safer locations.",
-            date: "24 Sep 2025 at 14:35",
-            hasMore: true,
-            isRead: true
-        },
-        {
-            id: 2,
-            type: "alert",
-            title: "🌍 EARTHQUAKE DETECTED:",
-            message: "A 6 magnitude earthquake was recorded 12 km from your location. Expect aftershocks. Avoid damaged buildings.",
-            date: "24 Sep 2025 at 13:50",
-            hasMore: true,
-            isRead: true
-        },
-        {
-            id: 3,
-            type: "alert",
-            title: "🌪️ STORM ALERT:",
-            message: "Severe thunderstorm expected in your area within the next hour. Stay indoors and secure loose objects outdoors.",
-            date: "23 Sep 2025 at 19:20",
-            hasMore: true,
-            isRead: false
-        },
-        {
-            id: 4,
-            type: "alert",
-            title: "🏔️ LANDSLIDE WARNING:",
-            message: "High risk of landslides due to saturated soil and continuous rainfall. Avoid hillside roads and stay alert for evacuation orders.",
-            date: "23 Sep 2025 at 17:05",
-            hasMore: true,
-            isRead: false
-        },
-        {
-            id: 5,
-            type: "alert",
-            title: "🌊 FLOOD EVACUATION NOTICE:",
-            message: "Immediate evacuation advised in Zone 4 due to overflowing riverbanks. Emergency shelters are open nearby.",
-            date: "22 Sep 2025 at 21:15",
-            hasMore: true,
-            isRead: false
-        },
-        {
-            id: 6,
-            type: "alert",
-            title: "🌍 EARTHQUAKE AFTERSHOCK ALERT:",
-            message: "Multiple aftershocks detected following this morning's quake. Remain cautious and follow safety protocols.",
-            date: "22 Sep 2025 at 19:45",
-            hasMore: true,
-            isRead: false
+    // Load read notifications from AsyncStorage
+    useEffect(() => {
+        loadReadNotifications();
+    }, []);
+
+    const loadReadNotifications = async () => {
+        try {
+            const readIds = await AsyncStorage.getItem('readNotifications');
+            if (readIds) {
+                setReadNotifications(new Set(JSON.parse(readIds)));
+            }
+        } catch (error) {
+            console.error('Error loading read notifications:', error);
         }
-    ];
+    };
+
+    // Fetch notifications from Firebase
+    useEffect(() => {
+        const q = query(
+            collection(db, 'notifications'),
+            orderBy('createdAt', 'desc')
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const notifs: Notification[] = [];
+            snapshot.forEach((doc) => {
+                notifs.push({ id: doc.id, ...doc.data() } as Notification);
+            });
+            setNotifications(notifs);
+            setLoading(false);
+            setRefreshing(false);
+        }, (error) => {
+            console.error('Error fetching notifications:', error);
+            setLoading(false);
+            setRefreshing(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // Mark notification as read (locally only)
+    const markAsRead = async (notificationId: string) => {
+        try {
+            const newReadSet = new Set(readNotifications);
+            newReadSet.add(notificationId);
+            setReadNotifications(newReadSet);
+            
+            // Save to AsyncStorage
+            await AsyncStorage.setItem('readNotifications', JSON.stringify(Array.from(newReadSet)));
+        } catch (error) {
+            console.error('Error marking notification as read:', error);
+        }
+    };
+
+    // Handle refresh
+    const onRefresh = () => {
+        setRefreshing(true);
+    };
+
+    // Check if notification is read
+    const isNotificationRead = (notificationId: string) => {
+        return readNotifications.has(notificationId);
+    };
 
     // Filter notifications
     const getFilteredNotifications = () => {
         switch (activeFilter) {
             case 'Read':
-                return notifications.filter(notification => notification.isRead);
+                return notifications.filter(notification => isNotificationRead(notification.id));
             case 'Unread':
-                return notifications.filter(notification => !notification.isRead);
+                return notifications.filter(notification => !isNotificationRead(notification.id));
             default:
                 return notifications;
         }
     };
 
-        // Get first sentence of a message
+    // Get first sentence of a message
     const getFirstSentence = (message: string) => {
         const firstSentence = message.split('.')[0];
         return firstSentence + (message.includes('.') ? '.' : '');
     };
 
     // Toggle expanded state for a notification
-    const toggleExpanded = (notificationId: number) => {
+    const toggleExpanded = (notificationId: string) => {
         setExpandedNotifications(prev => ({
             ...prev,
             [notificationId]: !prev[notificationId]
         }));
     };
 
+    // Format date
+    const formatDate = (timestamp: any) => {
+        if (!timestamp) return '';
+        try {
+            const date = timestamp.toDate();
+            const options: Intl.DateTimeFormatOptions = { 
+                day: '2-digit', 
+                month: 'short', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            return date.toLocaleDateString('en-GB', options).replace(',', ' at');
+        } catch (error) {
+            return '';
+        }
+    };
+
+    // Get icon based on notification type
+    const getNotificationIcon = (type: string) => {
+        switch (type) {
+            case 'warning':
+                return { name: 'warning' as const, color: '#DC2626' };
+            case 'alert':
+            default:
+                return { name: 'alert-circle' as const, color: '#d60000ff' };
+        }
+    };
+
     const filteredNotifications = getFilteredNotifications();
+    const unreadCount = notifications.filter(n => !isNotificationRead(n.id)).length;
+
+    if (loading) {
+        return (
+            <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+                <ActivityIndicator size="large" color="#EC4899" />
+                <Text className="text-gray-500 mt-4">Loading notifications...</Text>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
@@ -106,9 +167,16 @@ export default function Notifications() {
                     >
                         <Ionicons name="arrow-back" size={24} color="#4B5563" />
                     </TouchableOpacity>
-                    <Text className="text-xl font-semibold text-gray-700 flex-1 ml-4">
-                        Notifications
-                    </Text>
+                    <View className="flex-1 ml-4">
+                        <Text className="text-xl font-semibold text-gray-700">
+                            Notifications
+                        </Text>
+                        {unreadCount > 0 && (
+                            <Text className="text-xs text-gray-500 mt-0.5">
+                                {unreadCount} unread
+                            </Text>
+                        )}
+                    </View>
                     <View className="w-8" />
                 </View>
 
@@ -119,7 +187,7 @@ export default function Notifications() {
                         onPress={() => setActiveFilter('All')}
                     >
                         <Text className={`font-medium ${activeFilter === 'All' ? 'text-white' : 'text-gray-600'}`}>
-                            All
+                            All {notifications.length > 0 && `(${notifications.length})`}
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
@@ -135,58 +203,100 @@ export default function Notifications() {
                         onPress={() => setActiveFilter('Unread')}
                     >
                         <Text className={`font-medium ${activeFilter === 'Unread' ? 'text-white' : 'text-gray-600'}`}>
-                            Unread
+                            Unread {unreadCount > 0 && `(${unreadCount})`}
                         </Text>
                     </TouchableOpacity>
                 </View>
             </View>
 
             {/* Notifications List */}
-             <ScrollView className="flex-1 px-4 pt-4">
+            <ScrollView 
+                className="flex-1 px-4 pt-4"
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor="#EC4899"
+                        colors={['#EC4899']}
+                    />
+                }
+            >
                 {filteredNotifications.length === 0 ? (
                     <View className="flex-1 items-center justify-center mt-20">
                         <Ionicons name="notifications-off-outline" size={48} color="#9CA3AF" />
                         <Text className="text-gray-500 text-center mt-4 text-lg">
                             No {activeFilter.toLowerCase()} notifications
                         </Text>
+                        <Text className="text-gray-400 text-center mt-2 text-sm">
+                            {activeFilter === 'All' 
+                                ? "You'll receive notifications from admin here"
+                                : `No ${activeFilter.toLowerCase()} notifications at the moment`
+                            }
+                        </Text>
                     </View>
                 ) : (
-                    filteredNotifications.map((notification, index) => {
-                        const isExpanded = expandedNotifications [notification.id];
+                    filteredNotifications.map((notification) => {
+                        const isExpanded = expandedNotifications[notification.id];
+                        const isUnread = !isNotificationRead(notification.id);
                         const displayMessage = isExpanded ? notification.message : getFirstSentence(notification.message);
+                        const needsExpand = notification.message.length > 100;
+                        const icon = getNotificationIcon(notification.type);
                         
                         return (
-                            <View 
-                                key={notification.id} 
-                                className={`mb-4 p-4 rounded-lg ${notification.isRead ? 'bg-gray-100' : 'bg-white'} ${notification.isRead ? '' : 'shadow-sm'}`}
+                            <TouchableOpacity
+                                key={notification.id}
+                                onPress={() => {
+                                    if (isUnread) {
+                                        markAsRead(notification.id);
+                                    }
+                                }}
+                                activeOpacity={0.7}
                             >
-                                <View className="flex-row items-start">
-                                    <View className="mr-3 mt-1">
-                                        <Ionicons name="alert-circle" size={24} color="#d60000ff" />
-                                    </View>
-                                    <View className="flex-1">
-                                        <Text className={`font-medium mb-2 ${notification.isRead ? 'text-gray-500' : 'text-gray-700'}`}>
-                                            {notification.title}
-                                        </Text>
-                                        <Text className={`text-sm leading-5 mb-3 ${notification.isRead ? 'text-gray-400' : 'text-gray-600'}`}>
-                                            {displayMessage}
-                                            {notification.hasMore && (
-                                                <TouchableOpacity onPress={() => toggleExpanded(notification.id)}>
-                                                    <Text className="text-pink-500 text-sm">
-                                                        {isExpanded ? ' View less' : ' View more'}
+                                <View 
+                                    className={`mb-4 p-4 rounded-lg ${isUnread ? 'bg-white shadow-sm border-l-4 border-pink-500' : 'bg-gray-100'}`}
+                                >
+                                    <View className="flex-row items-start">
+                                        <View className="mr-3 mt-1">
+                                            <Ionicons name={icon.name} size={24} color={icon.color} />
+                                        </View>
+                                        <View className="flex-1">
+                                            <View className="flex-row items-center justify-between mb-1">
+                                                <Text className={`text-xs uppercase tracking-wide font-semibold ${isUnread ? 'text-pink-500' : 'text-gray-400'}`}>
+                                                    {notification.type}
+                                                </Text>
+                                                {isUnread && (
+                                                    <View className="w-2 h-2 bg-pink-500 rounded-full" />
+                                                )}
+                                            </View>
+                                            <Text className={`font-semibold mb-2 ${isUnread ? 'text-gray-800' : 'text-gray-500'}`}>
+                                                {notification.title}
+                                            </Text>
+                                            <Text className={`text-sm leading-5 mb-3 ${isUnread ? 'text-gray-600' : 'text-gray-400'}`}>
+                                                {displayMessage}
+                                            </Text>
+                                            {needsExpand && (
+                                                <TouchableOpacity 
+                                                    onPress={() => toggleExpanded(notification.id)}
+                                                    className="mb-2"
+                                                >
+                                                    <Text className="text-pink-500 text-sm font-medium">
+                                                        {isExpanded ? '← View less' : 'View more →'}
                                                     </Text>
                                                 </TouchableOpacity>
                                             )}
-                                        </Text>
-                                        <Text className={`text-xs ${notification.isRead ? 'text-gray-400' : 'text-gray-500'}`}>
-                                            {notification.date}
-                                        </Text>
+                                            <Text className={`text-xs ${isUnread ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                {formatDate(notification.createdAt)}
+                                            </Text>
+                                        </View>
                                     </View>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
                         );
                     })
                 )}
+                
+                {/* Bottom spacing */}
+                <View className="h-4" />
             </ScrollView>
         </SafeAreaView>
     );
