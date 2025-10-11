@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { db } from '../../config/firebase-config';
-import { collection, query, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, Timestamp, deleteDoc, doc } from 'firebase/firestore';
 
 type NotificationType = 'alert' | 'warning';
 
@@ -118,6 +118,28 @@ export default function Notifications() {
       Alert.alert('Send Emergency Alert','This will send an immediate emergency notification to all users. Continue?');
     };
 
+  const handleDeleteNotification = (notificationId: string, notificationTitle: string) => {
+    Alert.alert(
+      'Delete Notification',
+      `Are you sure you want to delete "${notificationTitle}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, 'notifications', notificationId));
+            } catch (error) {
+              console.error('Error deleting notification:', error);
+              Alert.alert('Error', 'Failed to delete notification');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-[#0b1220]">
       {/* Header */}
@@ -228,6 +250,12 @@ export default function Notifications() {
                       {notification.title}
                     </Text>
                     <View className="flex-row items-center">
+                      <TouchableOpacity
+                        onPress={() => handleDeleteNotification(notification.id, notification.title)}
+                        className="mr-3"
+                      >
+                        <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                      </TouchableOpacity>
                       <Ionicons 
                         name={getTypeIcon(notification.type)} 
                         size={16} 
