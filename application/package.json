@@ -29,6 +29,8 @@
     "@react-navigation/drawer": "^7.5.8",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
+    "@stripe/stripe-react-native": "^0.54.1",
+    "axios": "^1.12.2",
     "expo": "^54.0.9",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",

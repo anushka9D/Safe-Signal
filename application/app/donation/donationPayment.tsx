@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc, addDoc, collection, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../../config/firebase-config';
+import { CardField, useStripe } from '@stripe/stripe-react-native';
 
 
 export default function DonationPayment() {
@@ -14,6 +15,12 @@ export default function DonationPayment() {
     const [loading, setLoading] = useState(true);
     const [payAmount, setPayAmount] = useState('');
     const [processing, setProcessing] = useState(false);
+
+    const { confirmPayment } = useStripe();
+    const [cardComplete, setCardComplete] = useState(false);
+
+    // Replace with your backend URL
+    const BACKEND_URL = 'https://backend-payment-1-tj2r.onrender.com';
 
     interface DonationRequest {
         id: string;
@@ -80,43 +87,79 @@ export default function DonationPayment() {
             return;
         }
 
+        if (!cardComplete) {
+            Alert.alert('Validation Error', 'Please complete your card details');
+            return;
+        }
+
         const amount = Number(payAmount);
 
         try {
             setProcessing(true);
 
-            // Here you would call your payment backend API
-            // await yourPaymentAPI(amount);
-
-            // After successful payment, store donation data in Firebase
-            const donationData = {
-                userId: user.uid,
-                userName: user.displayName || 'Anonymous',
-                title: donationRequest?.title,
-                paymentDate: serverTimestamp(),
-                payAmount: amount,
-                requestId: id,
-            };
-
-            // Add to donations collection
-            await addDoc(collection(db, 'donation'), donationData);
-
-            // Update the raised amount in donation_request
-            const requestRef = doc(db, 'donation_request', id as string);
-            await updateDoc(requestRef, {
-                raisedAmount: increment(amount)
+            // Create payment intent on backend
+            const response = await fetch(`${BACKEND_URL}/api/payments/create-payment-intent`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    amount,
+                    donationRequestId: id,
+                    userId: user.uid,
+                    userName: user.displayName || 'Anonymous',
+                    title: donationRequest?.title,
+                }),
             });
 
-            Alert.alert(
-                'Success!',
-                `Thank you for your generous donation of ${formatAmount(amount)}!`,
-                [
-                    {
-                        text: 'OK',
-                        onPress: () => router.back()
-                    }
-                ]
-            );
+            if (!response.ok) {
+                throw new Error('Failed to create payment intent');
+            }
+
+            const { clientSecret, paymentIntentId } = await response.json();
+
+            // Confirm payment with Stripe
+            const { error, paymentIntent } = await confirmPayment(clientSecret, {
+                paymentMethodType: 'Card',
+            });
+
+            if (error) {
+                Alert.alert('Payment Failed', error.message);
+                return;
+            }
+
+            if (paymentIntent?.status === 'Succeeded') {
+                // Store donation data in Firebase
+                const donationData = {
+                    userId: user.uid,
+                    userName: user.displayName || 'Anonymous',
+                    title: donationRequest?.title,
+                    paymentDate: serverTimestamp(),
+                    payAmount: amount,
+                    requestId: id,
+                    paymentIntentId: paymentIntentId,
+                    status: 'succeeded',
+                };
+
+                await addDoc(collection(db, 'donation'), donationData);
+
+                // Update the raised amount
+                const requestRef = doc(db, 'donation_request', id as string);
+                await updateDoc(requestRef, {
+                    raisedAmount: increment(amount)
+                });
+
+                Alert.alert(
+                    'Success!',
+                    `Thank you for your generous donation of ${formatAmount(amount)}!`,
+                    [
+                        {
+                            text: 'OK',
+                            onPress: () => router.back()
+                        }
+                    ]
+                );
+            }
 
         } catch (error: any) {
             console.error('Error processing donation:', error);
@@ -279,6 +322,32 @@ export default function DonationPayment() {
                             ))}
                         </View>
 
+                        {/* Card Input */}
+                        <View className="mb-5">
+                            <Text className="text-gray-700 font-semibold mb-2">Card Details</Text>
+                            <CardField
+                                postalCodeEnabled={true}
+                                placeholders={{
+                                    number: '4242 4242 4242 4242',
+                                }}
+                                cardStyle={{
+                                    backgroundColor: '#F9FAFB',
+                                    textColor: '#1F2937',
+                                    borderWidth: 2,
+                                    borderColor: '#E5E7EB',
+                                    borderRadius: 12,
+                                }}
+                                style={{
+                                    width: '100%',
+                                    height: 50,
+                                    marginVertical: 8,
+                                }}
+                                onCardChange={(cardDetails) => {
+                                    setCardComplete(cardDetails.complete);
+                                }}
+                            />
+                        </View>
+
                         {/* Donate Button */}
                         <TouchableOpacity
                             className={`rounded-xl py-4 items-center ${
@@ -309,7 +378,7 @@ export default function DonationPayment() {
                     </View>
                 </View>
 
-                <View className="h-6" />
+                <View className="h-80" />
             </ScrollView>
         </SafeAreaView>
     );
