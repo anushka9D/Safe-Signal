@@ -288,6 +288,16 @@ export default function Notifications() {
                                             <Text className={`text-xs ${isUnread ? 'text-gray-500' : 'text-gray-400'}`}>
                                                 {formatDate(notification.createdAt)}
                                             </Text>
+                                            {/* Button to navigate to nearest safe location */}
+                                            <TouchableOpacity
+                                                className="mt-3 bg-blue-500 rounded-lg py-2 px-4 flex-row items-center self-start"
+                                                onPress={() => router.push('/map-navigation?nearestOnly=true&autoStart=true' as any)}
+                                            >
+                                                <Ionicons name="navigate" size={16} color="white" />
+                                                <Text className="text-white text-sm font-medium ml-2">
+                                                    Nearest Safe Location
+                                                </Text>
+                                            </TouchableOpacity>
                                         </View>
                                     </View>
                                 </View>

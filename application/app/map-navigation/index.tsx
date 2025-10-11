@@ -10,7 +10,7 @@ import {
   Platform,
   Linking,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import {
@@ -28,11 +28,14 @@ import { FamilyMember } from '../../lib/familyService';
 
 export default function MapNavigation() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const [safeLocations, setSafeLocations] = useState<(SafeLocation & { distance: number })[]>([]);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [navigationState, setNavigationState] = useState<NavigationState | null>(null);
+  const nearestOnly = params.nearestOnly === 'true';
+  const autoStart = params.autoStart === 'true';
 
   useEffect(() => {
     initializeData();
@@ -96,16 +99,33 @@ export default function MapNavigation() {
     try {
       if (!userLocation) return;
       
-      // Get only locations within 5km radius
-      const nearbyLocations = await getNearestSafeLocations(
-        userLocation.coords.latitude,
-        userLocation.coords.longitude,
-        5, // 5km radius
-        20 // max 20 locations
-      );
+      let nearbyLocations;
+      
+      if (nearestOnly) {
+        // Get only the nearest location when nearestOnly is true
+        nearbyLocations = await getNearestSafeLocations(
+          userLocation.coords.latitude,
+          userLocation.coords.longitude,
+          5, // 5km radius
+          1 // Only get 1 location (the nearest)
+        );
+      } else {
+        // Get all locations within 5km radius as before
+        nearbyLocations = await getNearestSafeLocations(
+          userLocation.coords.latitude,
+          userLocation.coords.longitude,
+          5, // 5km radius
+          20 // max 20 locations
+        );
+      }
       
       setSafeLocations(nearbyLocations);
       console.log(`Found ${nearbyLocations.length} safe locations within 5km`);
+      
+      // Automatically start navigation if autoStart is true and we have at least one location
+      if (autoStart && nearbyLocations.length > 0) {
+        startNavigation(nearbyLocations[0]);
+      }
     } catch (error) {
       console.error('Error loading safe locations:', error);
       setSafeLocations([]);
@@ -264,7 +284,7 @@ export default function MapNavigation() {
           <Text className="text-2xl font-bold text-gray-800">
             {navigationState?.isNavigating ? 
               `🧭 Navigating to ${navigationState.destination?.name}` : 
-              'Safe Locations'
+              (autoStart ? 'Starting Navigation...' : 'Safe Locations')
             }
           </Text>
           <TouchableOpacity
@@ -361,11 +381,11 @@ export default function MapNavigation() {
         ) : (
           <TouchableOpacity 
             className="bg-blue-500 rounded-full py-4 px-6 flex-row items-center justify-center shadow-lg"
-            onPress={() => router.push('/map-navigation/list' as any)}
+            onPress={() => router.push(nearestOnly ? '/map-navigation/list?nearestOnly=true' as any : '/map-navigation/list' as any)}
           >
             <Ionicons name="list" size={24} color="white" />
             <Text className="text-white text-lg font-semibold ml-2">
-              View List ({safeLocations.length} within 5km)
+              {nearestOnly ? 'Nearest Location' : `View List (${safeLocations.length} within 5km)`}
             </Text>
           </TouchableOpacity>
         )}
