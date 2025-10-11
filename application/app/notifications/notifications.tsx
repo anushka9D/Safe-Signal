@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../../config/firebase-config';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import notificationService from '../../lib/notificationService';
 
 interface Notification {
     id: string;
