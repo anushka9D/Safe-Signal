@@ -38,6 +38,9 @@ export default function EmbeddedMap({
       const updateScript = `
         if (typeof updateNavigation === 'function') {
           updateNavigation(${JSON.stringify(navigationState)});
+        } else if (typeof updateUserHeading === 'function' && ${navigationState.heading !== undefined}) {
+          // If not navigating but we have heading data, just update the arrow rotation
+          updateUserHeading(${navigationState.heading});
         }
       `;
       webViewRef.injectJavaScript(updateScript);
@@ -87,6 +90,15 @@ export default function EmbeddedMap({
         #map { height: 100vh; width: 100vw; }
         .leaflet-popup-content-wrapper { border-radius: 8px; }
         .leaflet-popup-content { margin: 12px; }
+        .user-location-arrow {
+          width: 0;
+          height: 0;
+          border-left: 10px solid transparent;
+          border-right: 10px solid transparent;
+          border-bottom: 20px solid #007AFF;
+          transform-origin: center;
+          transform: rotate(0deg);
+        }
       </style>
     </head>
     <body>
@@ -117,13 +129,18 @@ export default function EmbeddedMap({
           .bindPopup('<b>Your Location</b><br>You are here')
           .openPopup();
         
-        var userIcon = L.divIcon({
-          className: 'user-location-marker',
-          html: '<div style="background: #007AFF; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
-          iconSize: [20, 20],
-          iconAnchor: [10, 10]
-        });
-        userMarker.setIcon(userIcon);
+        // Create arrow icon for user location
+        var createUserArrowIcon = function(heading) {
+          var rotation = heading !== null ? heading : 0;
+          return L.divIcon({
+            className: 'user-location-marker',
+            html: '<div class="user-location-arrow" style="transform: rotate(' + rotation + 'deg);"></div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+          });
+        };
+        
+        userMarker.setIcon(createUserArrowIcon(null));
         ` : ''}
 
         // Add safe location markers
@@ -207,62 +224,6 @@ export default function EmbeddedMap({
           `;
         }).join('')}
 
-        // Function to create realistic route with multiple waypoints
-        function createRealisticRoute(start, end) {
-          var points = [start];
-          
-          // Calculate distance
-          var distance = Math.sqrt(Math.pow(end.lat - start.lat, 2) + Math.pow(end.lng - start.lng, 2));
-          
-          // Create waypoints based on distance (more waypoints for longer routes)
-          var numWaypoints = Math.max(3, Math.min(8, Math.floor(distance * 100)));
-          
-          for (var i = 1; i < numWaypoints; i++) {
-            var ratio = i / numWaypoints;
-            
-            // Add some randomness to create a more realistic path
-            var offsetLat = (Math.random() - 0.5) * 0.003;
-            var offsetLng = (Math.random() - 0.5) * 0.003;
-            
-            // Follow roads approximately (bias towards cardinal directions)
-            if (Math.random() > 0.5) {
-              // Prefer north-south then east-west
-              points.push({
-                lat: start.lat + (end.lat - start.lat) * ratio + offsetLat,
-                lng: start.lng + offsetLng
-              });
-              points.push({
-                lat: start.lat + (end.lat - start.lat) * ratio + offsetLat,
-                lng: start.lng + (end.lng - start.lng) * ratio
-              });
-            } else {
-              // Prefer east-west then north-south
-              points.push({
-                lat: start.lat + offsetLat,
-                lng: start.lng + (end.lng - start.lng) * ratio + offsetLng
-              });
-              points.push({
-                lat: start.lat + (end.lat - start.lat) * ratio,
-                lng: start.lng + (end.lng - start.lng) * ratio + offsetLng
-              });
-            }
-          }
-          
-          points.push(end);
-          
-          // Remove duplicate points
-          var uniquePoints = [];
-          for (var j = 0; j < points.length; j++) {
-            if (j === 0 || 
-                Math.abs(points[j].lat - points[j-1].lat) > 0.0001 || 
-                Math.abs(points[j].lng - points[j-1].lng) > 0.0001) {
-              uniquePoints.push([points[j].lat, points[j].lng]);
-            }
-          }
-          
-          return uniquePoints;
-        }
-
         // Navigation functions
         function startNavigation(locationId) {
           window.ReactNativeWebView.postMessage('navigate:' + locationId);
@@ -293,17 +254,24 @@ export default function EmbeddedMap({
           }
         };
 
+        // Function to update user heading when not navigating
+        window.updateUserHeading = function(heading) {
+          if (userMarker && !isNavigating) {
+            // Update user marker icon with heading rotation
+            if (typeof createUserArrowIcon !== 'undefined') {
+              userMarker.setIcon(createUserArrowIcon(heading));
+            }
+          }
+        };
+
         function displayNavigation(navState) {
           // Remove existing navigation line
           if (navigationLine) {
             map.removeLayer(navigationLine);
           }
 
-          // Create realistic route points
-          var routePoints = createRealisticRoute(
-            { lat: navState.route.points[0].latitude, lng: navState.route.points[0].longitude },
-            { lat: navState.route.points[navState.route.points.length - 1].latitude, lng: navState.route.points[navState.route.points.length - 1].longitude }
-          );
+          // Use actual route points from OSRM instead of generating simulated ones
+          var routePoints = navState.route.points.map(point => [point.latitude, point.longitude]);
 
           // Create navigation line with Google Maps style
           navigationLine = L.polyline(routePoints, {
@@ -314,9 +282,15 @@ export default function EmbeddedMap({
             lineCap: 'round'
           }).addTo(map);
 
-          // Update user marker position if available
+          // Update user marker position and rotation if available
           if (navState.currentLocation && userMarker) {
             userMarker.setLatLng([navState.currentLocation.latitude, navState.currentLocation.longitude]);
+            
+            // Update user marker icon with heading rotation
+            if (typeof createUserArrowIcon !== 'undefined') {
+              var heading = navState.heading !== undefined && navState.heading !== null ? navState.heading : 0;
+              userMarker.setIcon(createUserArrowIcon(heading));
+            }
             
             // Update popup with navigation info
             var popupContent = 
@@ -346,6 +320,11 @@ export default function EmbeddedMap({
           
           if (userMarker) {
             userMarker.bindPopup('<b>Your Location</b><br>You are here').closePopup();
+            
+            // Reset to arrow icon when not navigating
+            if (${userLocation ? 'true' : 'false'}) {
+              userMarker.setIcon(createUserArrowIcon(null));
+            }
           }
           
           isNavigating = false;

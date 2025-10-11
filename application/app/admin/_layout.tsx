@@ -140,7 +140,6 @@ export default function AdminLayout() {
       drawerContent={(props) => <CustomDrawerContent {...props} />}
     >
       <Drawer.Screen name="dashboard" options={{ title: 'Dashboard' }} />
-      <Drawer.Screen name="settings" options={{ title: 'Settings' }} />
       <Drawer.Screen name="notifications" options={{ title: 'Notifications' }} />
       <Drawer.Screen name="donations" options={{ title: 'Donations' }} />
       <Drawer.Screen name="content" options={{ title: 'Content management' }} />
