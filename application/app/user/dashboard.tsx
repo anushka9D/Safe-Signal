@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { auth, db } from '../../config/firebase-config';
+import userNotificationInit from '../../lib/userNotificationInit';
 
 export default function UserDashboard() {
     const router = useRouter();
@@ -20,6 +21,9 @@ export default function UserDashboard() {
             
             if (currentUser) {
                 try {
+                        // Initialize user notifications
+                        await userNotificationInit.initializeUserNotifications(currentUser.uid);
+
                     const userDocRef = doc(db, 'users', currentUser.uid);
                     const userDoc = await getDoc(userDocRef);
                     
@@ -46,7 +50,11 @@ export default function UserDashboard() {
 
         getCurrentLocation();
 
-        return unsubscribe;
+        return () => {
+            unsubscribe();
+            // Clean up notification listeners
+            userNotificationInit.cleanup();
+        };
     }, []);
 
     const getCurrentLocation = async () => {
