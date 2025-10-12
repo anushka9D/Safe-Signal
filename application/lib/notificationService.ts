@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { db } from '../config/firebase-config';
 import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import Constants from 'expo-constants';
+import { router } from 'expo-router';
 
 // Configure notification handler
 Notifications.setNotificationHandler({
@@ -47,20 +48,26 @@ class NotificationService {
       return true;
     }
 
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      
+      if (finalStatus !== 'granted') {
+        console.log('Failed to get push token for push notification!');
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.log('Error requesting notification permissions:', error);
+      // Still allow local notifications to work
+      return true;
     }
-    
-    if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
-      return false;
-    }
-    
-    return true;
   }
 
   // Get push token (only works in development builds)
@@ -84,6 +91,7 @@ class NotificationService {
 
   // Schedule a local notification
   async scheduleNotification(title: string, body: string, data: any = {}): Promise<string | null> {
+    // Local notifications work in both Expo Go and development builds
     try {
       const trigger: Notifications.NotificationTriggerInput = {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
@@ -110,6 +118,7 @@ class NotificationService {
 
   // Show immediate notification
   async showNotification(title: string, body: string, data: any = {}): Promise<string | null> {
+    // Local notifications work in both Expo Go and development builds
     try {
       const identifier = await Notifications.scheduleNotificationAsync({
         content: {
@@ -142,7 +151,7 @@ class NotificationService {
         if (change.type === 'added') {
           const notificationData: any = change.doc.data();
           
-          // Show push notification
+          // Show local notification (works in both Expo Go and development builds)
           await this.showNotification(
             notificationData.title,
             notificationData.message,
@@ -158,16 +167,21 @@ class NotificationService {
 
   // Set up notification listeners
   setupNotificationListeners() {
-    // Handle received notifications
-    this.notificationListener = Notifications.addNotificationReceivedListener((notification: Notifications.Notification) => {
-      console.log('Notification received:', notification);
-    });
+    try {
+      // Handle received notifications
+      this.notificationListener = Notifications.addNotificationReceivedListener((notification: Notifications.Notification) => {
+        console.log('Notification received:', notification);
+      });
 
-    // Handle notification responses (when user taps on notification)
-    this.responseListener = Notifications.addNotificationResponseReceivedListener((response: Notifications.NotificationResponse) => {
-      console.log('Notification response received:', response);
-      // Handle navigation or other actions based on notification data
-    });
+      // Handle notification responses (when user taps on notification)
+      this.responseListener = Notifications.addNotificationResponseReceivedListener((response: Notifications.NotificationResponse) => {
+        console.log('Notification response received:', response);
+        // Navigate to notifications page when user taps on notification
+        router.push('/notifications/notifications');
+      });
+    } catch (error) {
+      console.log('Error setting up notification listeners:', error);
+    }
   }
 
   // Clean up listeners
