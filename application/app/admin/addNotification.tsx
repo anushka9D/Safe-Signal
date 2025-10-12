@@ -3,6 +3,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, View, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { db } from '../../config/firebase-config';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import notificationService from '../../lib/notificationService';
+import Constants from 'expo-constants';
 
 type NotificationType = 'alert' | 'warning';
 
@@ -55,26 +57,69 @@ export default function addNotification() {
       setLoading(true);
       
       // Add notification to Firebase
-      await addDoc(collection(db, 'notifications'), {
+      const notificationRef = await addDoc(collection(db, 'notifications'), {
         title: form.title.trim(),
         message: form.message.trim(),
         type: form.type,
         createdAt: serverTimestamp()
       });
 
-      Alert.alert(
-        'Success', 
-        'Notification created successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Reset form
-              setForm({ title: '', message: '', type: 'alert' });
-            }
-          }
-        ]
+      // Show push notification immediately to all users
+      const notificationId = await notificationService.showNotification(
+        form.title.trim(),
+        form.message.trim(),
+        { 
+          type: form.type,
+          notificationId: notificationRef.id 
+        }
       );
+
+      // Inform user about notification delivery
+      if (notificationId) {
+        if (!Constants.expoGoConfig) {
+          Alert.alert(
+            'Success', 
+            'Notification created and sent successfully!',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  // Reset form
+                  setForm({ title: '', message: '', type: 'alert' });
+                }
+              }
+            ]
+          );
+        } else {
+          Alert.alert(
+            'Success', 
+            'Notification created successfully! Note: Full push notification functionality requires a development build. In Expo Go, you will see local notifications only.',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  // Reset form
+                  setForm({ title: '', message: '', type: 'alert' });
+                }
+              }
+            ]
+          );
+        }
+      } else {
+        Alert.alert(
+          'Partial Success', 
+          'Notification created in database but there was an issue showing the notification. Please check your notification settings.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Reset form
+                setForm({ title: '', message: '', type: 'alert' });
+              }
+            }
+          ]
+        );
+      }
     } catch (error: any) {
       console.error('Error creating notification:', error);
       Alert.alert('Error', 'Failed to create notification. Please try again.');
