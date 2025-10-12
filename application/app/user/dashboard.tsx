@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useFocusEffect, useRouter } from "expo-router";
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { auth, db } from '../../config/firebase-config';
@@ -28,6 +28,7 @@ export default function UserDashboard() {
     const [loading, setLoading] = useState(true);
     const [earnedBadges, setEarnedBadges] = useState<DashboardBadge[]>([]);
     const [totalBadgeCount, setTotalBadgeCount] = useState(0);
+    const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
 
     // Function to refresh badge data
     const refreshBadges = useCallback(async () => {
@@ -190,6 +191,47 @@ export default function UserDashboard() {
         }
     };
 
+    // Fetch recent notifications from Firebase
+    useEffect(() => {
+        const q = query(
+            collection(db, 'notifications'),
+            orderBy('createdAt', 'desc'),
+            limit(2)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const notifs: any[] = [];
+            snapshot.forEach((doc) => {
+                notifs.push({ id: doc.id, ...doc.data() });
+            });
+            setRecentNotifications(notifs);
+        }, (error) => {
+            console.error('Error fetching recent notifications:', error);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // Format time as "X min/hours/days ago"
+    const getTimeAgo = (timestamp: any) => {
+        if (!timestamp) return '';
+        try {
+            const date = timestamp.toDate();
+            const now = new Date();
+            const diffInMs = now.getTime() - date.getTime();
+            const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+            const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+            const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+            if (diffInMinutes < 1) return 'Just now';
+            if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
+            if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+            return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+        } catch (error) {
+            return '';
+        }
+    };
+
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
             <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
@@ -311,29 +353,34 @@ export default function UserDashboard() {
 
                     {/* Notifications */}
                     <View className="space-y-3 gap-4">
-                        <TouchableOpacity className="bg-white rounded-xl p-3 flex-row items-center">
-                            <View className="bg-blue-100 rounded-full p-2 mr-3">
-                                <Ionicons name="water" size={20} color="#3B82F6" />
-                            </View>
-                            <View className="flex-1">
-                                <Text className="font-semibold text-gray-800 text-lg">Flood</Text>
-                                <Text className="text-gray-600 text-md">Location : Kalutara</Text>
-                            </View>
-
-                            <Text className="text-gray-500 text-md">5 min ago</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity className="bg-white rounded-xl p-3 flex-row items-center">
-                            <View className="bg-red-100 rounded-full p-2 mr-3">
-                                <Ionicons name="thunderstorm" size={20} color="#EF4444" />
-                            </View>
-                            <View className="flex-1">
-                                <Text className="font-semibold text-gray-800 text-lg">Tropical Cyclone</Text>
-                                <Text className="text-gray-600 text-md">Location : Gampaha</Text>
-                            </View>
-
-                            <Text className="text-gray-500 text-md">24 min ago</Text>
-                        </TouchableOpacity>
+                        {recentNotifications.map((notification) => {
+                        const icon = notification.type === 'warning' 
+                            ? { name: 'warning' as const, color: '#EF4444', bg: 'bg-red-100' }
+                            : { name: 'alert-circle' as const, color: '#3B82F6', bg: 'bg-blue-100' };
+                        
+                        return (
+                            <TouchableOpacity 
+                                key={notification.id}
+                                className="bg-white rounded-xl p-3 flex-row items-center"
+                                onPress={() => router.push('/notifications/notifications')}
+                            >
+                                <View className={`${icon.bg} rounded-full p-2 mr-3`}>
+                                    <Ionicons name={icon.name} size={20} color={icon.color} />
+                                </View>
+                                <View className="flex-1">
+                                    <Text className="font-semibold text-gray-800 text-lg">
+                                        {notification.title}
+                                    </Text>
+                                    <Text className="text-gray-600 text-md" numberOfLines={1}>
+                                        {notification.message}
+                                    </Text>
+                                </View>
+                                <Text className="text-gray-500 text-md">
+                                    {getTimeAgo(notification.createdAt)}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
                     </View>
                 </View>
 
