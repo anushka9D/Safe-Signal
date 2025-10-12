@@ -123,23 +123,7 @@ export default function FooterNavigation({ activeTab = 'home' }: FooterNavigatio
           </Text>
         </TouchableOpacity>
 
-        {/* Resources */}
-        <TouchableOpacity
-          className="flex-1 items-center py-2"
-          onPress={() => navigateToPage('resources')}
-        >
-          <Ionicons 
-            name="book" 
-            size={24} 
-            color={getIconColor('resources')} 
-          />
-          <Text 
-            className="text-xs mt-1"
-            style={{ color: activeTab === 'resources' ? '#007AFF' : '#9CA3AF' }}
-          >
-            Resources
-          </Text>
-        </TouchableOpacity>
+        
 
         {/* Status */}
         <TouchableOpacity

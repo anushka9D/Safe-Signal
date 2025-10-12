@@ -6,18 +6,26 @@ import notificationService from '../lib/notificationService';
 import { useEffect } from 'react';
 
 export default function RootLayout() {
-    useEffect(() => {
+  useEffect(() => {
     // Initialize notification service
     const initNotifications = async () => {
-      await notificationService.requestPermissions();
-      notificationService.setupNotificationListeners();
+      try {
+        await notificationService.requestPermissions();
+        notificationService.setupNotificationListeners();
+      } catch (error) {
+        console.log('Error initializing notifications:', error);
+      }
     };
     
     initNotifications();
     
     // Cleanup on unmount
     return () => {
-      notificationService.cleanup();
+      try {
+        notificationService.cleanup();
+      } catch (error) {
+        console.log('Error cleaning up notifications:', error);
+      }
     };
   }, []);
   
