@@ -12,7 +12,7 @@ import {
   Linking,
   Dimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import {
@@ -25,12 +25,14 @@ import FooterNavigation from '../../lib/FooterNavigation';
 
 export default function SafeLocationsList() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const [safeLocations, setSafeLocations] = useState<(SafeLocation & { distance: number })[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMapOverview, setShowMapOverview] = useState(false);
   const [navigationState, setNavigationState] = useState<NavigationState | null>(null);
   const { width } = Dimensions.get('window');
+  const nearestOnly = params.nearestOnly === 'true';
 
   useEffect(() => {
     loadData();
@@ -50,12 +52,24 @@ export default function SafeLocationsList() {
       const location = await Location.getCurrentPositionAsync({});
       setUserLocation(location);
 
-      const nearestLocations = await getNearestSafeLocations(
-        location.coords.latitude,
-        location.coords.longitude,
-        5, // 5km radius
-        20 // max 20 locations
-      );
+      let nearestLocations;
+      if (nearestOnly) {
+        // Get only the nearest location when nearestOnly is true
+        nearestLocations = await getNearestSafeLocations(
+          location.coords.latitude,
+          location.coords.longitude,
+          5, // 5km radius
+          1 // Only get 1 location (the nearest)
+        );
+      } else {
+        // Get all locations within 5km radius as before
+        nearestLocations = await getNearestSafeLocations(
+          location.coords.latitude,
+          location.coords.longitude,
+          5, // 5km radius
+          20 // max 20 locations
+        );
+      }
       
       setSafeLocations(nearestLocations);
     } catch (error) {
@@ -149,7 +163,7 @@ export default function SafeLocationsList() {
             <Ionicons name="arrow-back" size={24} color="#4B5563" />
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-gray-800">
-            Safe Locations ({safeLocations.length})
+            {nearestOnly ? 'Nearest Safe Location' : `Safe Locations (${safeLocations.length})`}
           </Text>
           <TouchableOpacity
             className="bg-gray-100 rounded-full p-2 mt-8"

@@ -405,6 +405,7 @@ export default function RiskAssessmentQuiz() {
           answers,
           completedAt: serverTimestamp(),
         },
+        riskAssessmentCompleted: true
       })
 
       Alert.alert(

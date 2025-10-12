@@ -1,11 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { auth, db } from '../../config/firebase-config';
+import userNotificationInit from '../../lib/userNotificationInit';
+
+interface UserBadgeData {
+    quizCompleted?: boolean;
+    knowledgeLevel?: string;
+    riskAssessmentCompleted?: boolean;
+}
+
+interface DashboardBadge {
+    icon: any;
+    iconColor: string;
+    bgColor: string;
+}
 
 export default function UserDashboard() {
     const router = useRouter();
@@ -13,6 +26,32 @@ export default function UserDashboard() {
     const [userName, setUserName] = useState('User');
     const [userLocation, setUserLocation] = useState<string>('Getting location...');
     const [loading, setLoading] = useState(true);
+    const [earnedBadges, setEarnedBadges] = useState<DashboardBadge[]>([]);
+    const [totalBadgeCount, setTotalBadgeCount] = useState(0);
+
+    // Function to refresh badge data
+    const refreshBadges = useCallback(async () => {
+        if (auth.currentUser) {
+            try {
+                const userDocRef = doc(db, 'users', auth.currentUser.uid);
+                const userDoc = await getDoc(userDocRef);
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    loadUserBadges(userData as UserBadgeData);
+                }
+            } catch (error) {
+                console.error('Error refreshing badges:', error);
+            }
+        }
+    }, []);
+
+    // Refresh badges every time the screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            refreshBadges();
+        }, [refreshBadges])
+    );
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -20,6 +59,9 @@ export default function UserDashboard() {
             
             if (currentUser) {
                 try {
+                    // Initialize user notifications
+                    await userNotificationInit.initializeUserNotifications(currentUser.uid);
+
                     const userDocRef = doc(db, 'users', currentUser.uid);
                     const userDoc = await getDoc(userDocRef);
                     
@@ -28,6 +70,9 @@ export default function UserDashboard() {
                         // Use name from Firestore
                         const name = userData.name || currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
                         setUserName(name);
+                        
+                        // Load badge data
+                        loadUserBadges(userData as UserBadgeData);
                     } else {
                         // Fallback to auth user data
                         const name = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
@@ -46,8 +91,70 @@ export default function UserDashboard() {
 
         getCurrentLocation();
 
-        return unsubscribe;
+        return () => {
+            unsubscribe();
+            // Clean up notification listeners
+            userNotificationInit.cleanup();
+        };
     }, []);
+
+    const loadUserBadges = (userData: UserBadgeData) => {
+        const badges: DashboardBadge[] = [];
+        const totalBadges = 5; // Quiz + 3 Knowledge Levels + Risk Assessment
+        
+        // Quiz Completer Badge
+        if (userData.quizCompleted) {
+            badges.push({
+                icon: 'checkmark-circle',
+                iconColor: '#FFFFFF',
+                bgColor: 'bg-green-500'
+            });
+        }
+
+        // Progressive Knowledge Level Badges
+        const isAdvanced = userData.knowledgeLevel === 'advanced';
+        const isIntermediate = userData.knowledgeLevel === 'intermediate';
+        const isBeginner = userData.knowledgeLevel === 'beginner';
+
+        // Bronze (Beginner)
+        if (isBeginner || isIntermediate || isAdvanced) {
+            badges.push({
+                icon: 'medal',
+                iconColor: '#FFFFFF',
+                bgColor: 'bg-orange-400'
+            });
+        }
+
+        // Silver (Intermediate)
+        if (isIntermediate || isAdvanced) {
+            badges.push({
+                icon: 'medal',
+                iconColor: '#FFFFFF',
+                bgColor: 'bg-gray-400'
+            });
+        }
+
+        // Gold (Advanced)
+        if (isAdvanced) {
+            badges.push({
+                icon: 'medal',
+                iconColor: '#FFFFFF',
+                bgColor: 'bg-yellow-500'
+            });
+        }
+
+        // Risk Assessment Badge
+        if (userData.riskAssessmentCompleted) {
+            badges.push({
+                icon: 'shield-checkmark',
+                iconColor: '#FFFFFF',
+                bgColor: 'bg-purple-500'
+            });
+        }
+
+        setEarnedBadges(badges);
+        setTotalBadgeCount(totalBadges);
+    };
 
     const getCurrentLocation = async () => {
         try {
@@ -132,20 +239,45 @@ export default function UserDashboard() {
                             className="bg-gray-800 rounded-2xl p-4 flex-1"
                             onPress={() => router.push('/badges/badges')}
                         >
-                            <Text className="text-white font-semibold text-base mb-3 text-center">
-                                Your Badges
-                            </Text>
-                            <View className="flex-row space-x-2 gap-3">
-                                <View className="bg-yellow-100 rounded-full w-11 h-11 items-center justify-center">
-                                    <Text className="text-white text-lg font-bold">🏆</Text>
-                                </View>
-                                <View className="bg-gray-100 rounded-full w-11 h-11 items-center justify-center">
-                                    <Text className="text-white text-lg font-bold">⭐</Text>
-                                </View>
-                                <View className="bg-yellow-100 rounded-full w-11 h-11 items-center justify-center">
-                                    <Text className="text-white text-lg font-bold">🥉</Text>
+                            <View className="flex-row items-center justify-between mb-2">
+                                <Text className="text-white font-semibold text-base">
+                                    Your Badges
+                                </Text>
+                                <View className="bg-orange-500 rounded-full px-2 py-1">
+                                    <Text className="text-white text-xs font-bold">
+                                        {earnedBadges.length}/{totalBadgeCount}
+                                    </Text>
                                 </View>
                             </View>
+                            
+                            {earnedBadges.length === 0 ? (
+                                <View className="items-center justify-center py-2">
+                                    <Ionicons name="lock-closed" size={32} color="#9CA3AF" />
+                                    <Text className="text-gray-400 text-xs mt-1">No badges yet</Text>
+                                </View>
+                            ) : (
+                                <View className="flex-row flex-wrap gap-2 mt-2">
+                                    {earnedBadges.slice(0, 3).map((badge, index) => (
+                                        <View 
+                                            key={index}
+                                            className={`${badge.bgColor} rounded-full w-9 h-9 items-center justify-center`}
+                                        >
+                                            <Ionicons 
+                                                name={badge.icon} 
+                                                size={20} 
+                                                color={badge.iconColor} 
+                                            />
+                                        </View>
+                                    ))}
+                                    {earnedBadges.length > 3 && (
+                                        <View className="bg-gray-600 rounded-full w-9 h-9 items-center justify-center">
+                                            <Text className="text-white text-xs font-bold">
+                                                +{earnedBadges.length - 3}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                            )}
                         </TouchableOpacity>
 
                         {/* Saved Location */}
